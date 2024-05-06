@@ -1,0 +1,42 @@
+version: '3.7'
+services:
+  imgproxy:
+    image: darthsim/imgproxy
+    environment:
+      - IMGPROXY_BIND=:80
+      - IMGPROXY_MAX_ANIMATION_FRAMES=100
+      - AWS_ACCESS_KEY_ID=
+      - AWS_SECRET_ACCESS_KEY=
+      - IMGPROXY_S3_ENDPOINT=
+      - IMGPROXY_S3_REGION=weur
+      - IMGPROXY_USE_S3=true
+    ports:
+      - 8234:80
+  jaeger:
+    image: "jaegertracing/all-in-one:1.35"
+    ports:
+      - "16686:16686"
+      - "14268:14268"
+      - "14250:14250"
+      - "5775:5775"
+      - "6831:6831/udp"
+      - "6832:6832"
+      - "5778:5778"
+      - "14269:14269"
+      - "9411:9411"
+    environment:
+      - COLLECTOR_ZIPKIN_HOST_PORT=:9411
+  api:
+    build: .
+    restart: always 
+    ports:
+    - '5122:8000'
+  scylla:
+    image: scylladb/scylla
+    container_name: some-scylla
+    volumes:
+      - './scylla_data:/var/lib/scylla'
+    ports:
+      - '7000:7000'
+      - '9042:9042'
+    command: --smp 1
