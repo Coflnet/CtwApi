@@ -1,3 +1,5 @@
+using Amazon.Runtime;
+using Amazon.S3;
 using Coflnet.Auth;
 using Coflnet.Core;
 
@@ -10,6 +12,21 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddControllers();
 builder.AddCoflAuthService();
 builder.Services.AddCoflnetCore();
+builder.Services.AddSingleton<ImagesService>();
+builder.Services.AddSingleton<ObjectService>();
+builder.Services.AddSingleton<IAmazonS3>(sb =>
+{
+    AmazonS3Config awsCofig = new AmazonS3Config
+    {
+        ServiceURL = builder.Configuration["S3_BASE_URL"]
+    };
+    var credentials = new BasicAWSCredentials(builder.Configuration["ACCESS_KEY"], builder.Configuration["SECRET_KEY"]);
+
+    return new AmazonS3Client(
+            credentials,
+            awsCofig
+            );
+});
 
 var app = builder.Build();
 

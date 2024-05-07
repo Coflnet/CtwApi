@@ -13,11 +13,11 @@ public class ImagesService
     private readonly string bucketName;
     private readonly Table<CapturedImage> categoryService;
 
-    public ImagesService(ILogger<ImagesService> logger, IAmazonS3 s3Client, string bucketName, ISession session)
+    public ImagesService(ILogger<ImagesService> logger, IAmazonS3 s3Client, IConfiguration config, ISession session)
     {
         this.logger = logger;
         this.s3Client = s3Client;
-        this.bucketName = bucketName;
+        this.bucketName = config["BUCKET_NAME"] ?? throw new ArgumentNullException("BUCKET_NAME");
         var mapping = new MappingConfiguration()
             .Define(new Map<CapturedImage>()
             .PartitionKey(t => t.UserId)
