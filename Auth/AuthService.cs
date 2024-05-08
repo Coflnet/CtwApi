@@ -15,8 +15,9 @@ public class AuthService
 {
     private readonly Table<User> userDb;
     private readonly IConfiguration config;
+    private readonly ILogger<AuthService> logger;
 
-    public AuthService(ISession session, IConfiguration config)
+    public AuthService(ISession session, IConfiguration config, ILogger<AuthService> logger)
     {
         var mapping = new MappingConfiguration()
             .Define(new Map<User>()
@@ -28,6 +29,9 @@ public class AuthService
         userDb = new Table<User>(session, mapping, "users");
         userDb.CreateIfNotExists();
         this.config = config;
+        this.logger = logger;
+        var adminToken = CreateTokenFor("admin");
+        logger.LogInformation($"Admin token: {adminToken}");
     }
 
     public Guid GetUserId(string authProviderId)
@@ -61,7 +65,7 @@ public class AuthService
         return userDb.Where(u => u.AuthProviderId == authProviderId).Execute().FirstOrDefault();
     }
 
-    public string GetTokenAnonymous(string secret, string? ip, string? userAgentOrDeviceInfo)
+    public string GetTokenAnonymous(string secret, string? ip, string? userAgentOrDeviceInfo, string locale)
     {
         if (secret.Length < 32)
         {
@@ -72,7 +76,7 @@ public class AuthService
         if (user == null)
         {
             // TODO: rate limit
-            var userId = CreateUser(virtualid, "Anonymous", null, null);
+            var userId = CreateUser(virtualid, "Anonymous", null, locale);
             return CreateTokenFor(userId);
         }
         // update last seen at and return token
@@ -82,6 +86,10 @@ public class AuthService
     }
 
     public string CreateTokenFor(Guid userId)
+    {
+        return CreateTokenFor(userId.ToString());
+    }
+    private string CreateTokenFor(string userId)
     {
         string key = config["jwt:secret"]; //Secret key which will be used later during validation
         var issuer = config["jwt:issuer"];

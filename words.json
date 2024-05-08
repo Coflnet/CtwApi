@@ -762,16 +762,9 @@
         "hijab",
         "headscarf",
         "veil",
-        "gloves",
-        "mittens",
-        "muff",
-        "earmuffs",
-        "hat",
-        "cap",
         "beret",
         "beanie",
         "bobble hat",
-        "bowler hat",
         "boater",
         "panama",
         "fedora",
@@ -788,7 +781,6 @@
         "headband",
         "hairband",
         "hairclip",
-        "hairpin",
-        "hairband"
+        "hairpin"
     ]
 }

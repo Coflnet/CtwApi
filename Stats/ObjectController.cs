@@ -14,17 +14,24 @@ public class ObjectController : ControllerBase
         this.logger = logger;
     }
 
+    [HttpGet("objects")]
+    [Authorize]
+    public async Task<IEnumerable<CollectableObject>> GetObjects()
+    {
+        return await objectService.GetObjects("en");
+    }
+    
 
     [HttpGet("objects/categories")]
     [Authorize]
-    public async Task<IEnumerable<Category>> GetObjects()
+    public async Task<IEnumerable<Category>> GetCategories()
     {
         return await objectService.GetCategories();
     }
 
     [HttpGet("objects/{objectId}")]
     [Authorize]
-    public async Task<CollectableObject?> GetObject(Guid objectId)
+    public async Task<CollectableObject?> GetObject(string objectId)
     {
         return await objectService.GetObject(objectId);
     }

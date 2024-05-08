@@ -18,7 +18,7 @@ public class AuthController : Controller
     public IActionResult Login([FromBody] AnonymousLoginRequest request)
     {
         var ipBehindCloudflare = Request.Headers["CF-Connecting-IP"].FirstOrDefault() ?? Request.HttpContext.Connection.RemoteIpAddress?.ToString();
-        var token = authService.GetTokenAnonymous(request.Secret, ipBehindCloudflare, Request.Headers["User-Agent"]);
+        var token = authService.GetTokenAnonymous(request.Secret, ipBehindCloudflare, Request.Headers["User-Agent"], request.Locale ?? "en");
         return Ok(new { token });
     }
 }
@@ -26,4 +26,5 @@ public class AuthController : Controller
 public class AnonymousLoginRequest
 {
     public string Secret { get; set; }
+    public string Locale { get; set; }
 }

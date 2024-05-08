@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Cassandra.Data.Linq;
 using Cassandra.Mapping;
 using ISession = Cassandra.ISession;
@@ -12,16 +13,17 @@ public class ObjectService
     {
         var mapping = new MappingConfiguration()
             .Define(new Map<CollectableObject>()
-            .PartitionKey(t => t.Category)
+            .PartitionKey(t => t.Locale)
             .ClusteringKey(t => t.Name)
             .Column(t => t.UserId, cm => cm.WithSecondaryIndex())
-            .Column(t => t.ObjectId, cm => cm.WithSecondaryIndex())
+            .Column(t => t.Category, cm => cm.WithSecondaryIndex())
         );
-        objectTable = new Table<CollectableObject>(session, mapping, "objects");
+        objectTable = new Table<CollectableObject>(session, mapping, "name_objects");
         objectTable.CreateIfNotExists();
         var existing = objectTable.FirstOrDefault().Execute();
         if (existing == null)
         {
+            session.Execute("DROP TABLE IF EXISTS objects");
             Task.Run(CreateObjects);
         }
 
@@ -42,7 +44,7 @@ public class ObjectService
                     {
                         continue;
                     }
-                    await CreateObject(Guid.NewGuid(), category, name, "", 500);
+                    await CreateObject(Guid.Empty, "en", category, name, "", 500);
                 }
             }
         }
@@ -52,19 +54,19 @@ public class ObjectService
         }
     }
 
-    public async Task<CollectableObject> CreateObject(Guid userId, string category, string name, string description, long value)
+    public async Task<CollectableObject> CreateObject(Guid userId, string locale, string category, string name, string description, long value)
     {
         var newObject = new CollectableObject()
         {
-            ObjectId = Guid.NewGuid(),
             UserId = userId,
+            Locale = locale,
             Category = category,
             Name = name,
             Description = description,
             Value = value
         };
         await objectTable.Insert(newObject).ExecuteAsync();
-        logger.LogInformation($"Created object {newObject.ObjectId} in category {category} with name {name} and value {value}");
+        logger.LogInformation($"Created object in category {category} with name {name} and value {value}");
         return newObject;
     }
 
@@ -73,9 +75,9 @@ public class ObjectService
         return await objectTable.Where(o => o.UserId == userId).ExecuteAsync();
     }
 
-    public async Task<CollectableObject?> GetObject(Guid userId, Guid objectId)
+    public async Task<IEnumerable<CollectableObject>> GetObjects(string locale)
     {
-        return (await objectTable.Where(o => o.UserId == userId && o.ObjectId == objectId).ExecuteAsync()).FirstOrDefault();
+        return await objectTable.Where(o => o.Locale == locale).ExecuteAsync();
     }
 
     public async Task<IEnumerable<CollectableObject>> GetCategoryObjects(string category)
@@ -83,16 +85,16 @@ public class ObjectService
         return await objectTable.Where(o => o.Category == category).ExecuteAsync();
     }
 
-    public async Task DecreaseValueTo(Guid objectId, long value)
+    public async Task DecreaseValueTo(string objectName, long value)
     {
-        await objectTable.Where(o => o.ObjectId == objectId)
+        await objectTable.Where(o => o.Name == objectName)
             .Select(o => new CollectableObject() { Value = value })
             .Update().ExecuteAsync();
     }
 
-    public async Task<CollectableObject?> GetObject(Guid objectId)
+    public async Task<CollectableObject?> GetObject(string name)
     {
-        return (await objectTable.Where(o => o.ObjectId == objectId).ExecuteAsync()).FirstOrDefault();
+        return (await objectTable.Where(o => o.Name == name).ExecuteAsync()).FirstOrDefault();
     }
 
     public async Task<IEnumerable<Category>> GetCategories()
@@ -116,11 +118,12 @@ public class Category
 
 public class CollectableObject
 {
-    public Guid ObjectId { get; set; }
+    [JsonIgnore]
     public Guid UserId { get; set; }
     public string Category { get; set; }
     public string Name { get; set; }
-    public Dictionary<string, string> Localizations { get; set; }
+    public string Locale { get; set; }
+    public Dictionary<string, string> Metadata { get; set; }
     public string Description { get; set; }
     public long Value { get; set; }
 }

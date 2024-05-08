@@ -1,14 +1,28 @@
+using System.Reflection;
 using Amazon.Runtime;
 using Amazon.S3;
 using Coflnet.Auth;
 using Coflnet.Core;
+using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+            {
+                c.SwaggerDoc("v1", new OpenApiInfo
+                {
+                    Title = "CtwApi",
+                    Version = "v1",
+                    Description = ""
+                });
+                // Set the comments path for the Swagger JSON and UI.
+                var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+                var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+                c.IncludeXmlComments(xmlPath, true);
+            });
 builder.Services.AddControllers();
 builder.AddCoflAuthService();
 builder.Services.AddCoflnetCore();
