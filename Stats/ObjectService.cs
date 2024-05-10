@@ -120,6 +120,7 @@ public class CollectableObject
 {
     [JsonIgnore]
     public Guid UserId { get; set; }
+    // add added date
     public string Category { get; set; }
     public string Name { get; set; }
     public string Locale { get; set; }
