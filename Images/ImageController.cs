@@ -28,6 +28,7 @@ public class ImageController : ControllerBase
     /// <exception cref="ApiException"></exception>
     [HttpPost("images/{label}"), DisableRequestSizeLimit]
     [Authorize]
+    [SwaggerOperation(OperationId = "ApiFileUpload.UploadFile", Summary = "Upload an image", Description = "Upload an image")]
     public async Task<CapturedImage> UploadImage(string label)
     {
         var userId = Guid.Parse(User.Claims.FirstOrDefault(c => c.Type == "sub").Value);

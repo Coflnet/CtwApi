@@ -4,6 +4,7 @@ using Amazon.S3;
 using Coflnet.Auth;
 using Coflnet.Core;
 using Microsoft.OpenApi.Models;
+using Swashbuckle.AspNetCore.SwaggerGen;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -41,13 +42,16 @@ builder.Services.AddSwaggerGen(c =>
                         new string[] { }
                     }
                 });
-                // exclude /api/auth/* from auth
-
+                c.CustomOperationIds(apiDesc =>
+                {
+                    return apiDesc.TryGetMethodInfo(out MethodInfo methodInfo) ? methodInfo.Name : "xy";
+                });
 
                 // Set the comments path for the Swagger JSON and UI.
                 var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
                 var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
                 c.IncludeXmlComments(xmlPath, true);
+                c.OperationFilter<FileUploadOperationFilter>();
             });
 builder.Services.AddControllers();
 builder.AddCoflAuthService();
