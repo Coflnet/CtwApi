@@ -1,6 +1,7 @@
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.JsonWebTokens;
 
 namespace Coflnet.Auth;
 
@@ -12,6 +13,8 @@ public static class AuthExtensions
         // from config
         var issuer = builder.Configuration["jwt:issuer"];
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["jwt:secret"] ?? throw new InvalidOperationException("jwt:secret is missing in the configuration.")));
+        // override default claim mapping to not remab "sub" to "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"
+        JsonWebTokenHandler.DefaultInboundClaimTypeMap.Clear();
         builder.Services
             .AddAuthorization()
             .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

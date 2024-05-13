@@ -2,6 +2,7 @@ using Coflnet.Core;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.StaticFiles;
+using Newtonsoft.Json;
 using Swashbuckle.AspNetCore.Annotations;
 
 namespace Coflnet.Auth;
@@ -31,7 +32,7 @@ public class ImageController : ControllerBase
     [SwaggerOperation(OperationId = "ApiFileUpload.UploadFile", Summary = "Upload an image", Description = "Upload an image")]
     public async Task<CapturedImage> UploadImage(string label)
     {
-        var userId = Guid.Parse(User.Claims.FirstOrDefault(c => c.Type == "sub").Value);
+        var userId = Guid.Parse(User.Claims.FirstOrDefault(c => c.Type == "sub")?.Value ?? throw new ApiException("missing_user_id", "User id not found in claims"));
         var file = Request.Form.Files.FirstOrDefault();
         if (file == null)
         {
