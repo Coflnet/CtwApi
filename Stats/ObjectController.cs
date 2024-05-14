@@ -1,4 +1,5 @@
 using Coflnet.Core;
+using Confluent.Kafka;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -29,7 +30,15 @@ public class ObjectController : ControllerBase
         var userId = Guid.Parse(User.Claims.FirstOrDefault(c => c.Type == "sub")?.Value ?? throw new ApiException("missing_user_id", "User id not found in claims"));
         return await objectService.GetNextObjectToCollect(userId);
     }
-    
+
+    [HttpGet("objects/challenge")]
+    [Authorize]
+    public async Task<List<CollectableObject>> GetNextObject(int offset = -1, int count = 5)
+    {
+        var userId = Guid.Parse(User.Claims.FirstOrDefault(c => c.Type == "sub")?.Value ?? throw new ApiException("missing_user_id", "User id not found in claims"));
+        return await objectService.GetRandom(userId, offset, count);
+    }
+
 
     [HttpGet("objects/categories")]
     [Authorize]

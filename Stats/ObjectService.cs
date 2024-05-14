@@ -114,14 +114,28 @@ public class ObjectService
 
     public async Task<CollectableObject?> GetNextObjectToCollect(Guid userId)
     {
-        var stat = (int) await statsService.GetStat(userId, "objects_collected");
+        var stat = (int)await statsService.GetStat(userId, "objects_collected");
         var things = await GetThings();
         var random = new Random(userId.GetHashCode());
         var target = things?.SelectMany(t => t.Value).OrderBy(t => random.Next()).Skip(stat).FirstOrDefault();
 
         var objects = await objectTable.Where(o => o.Locale == "en" && o.Name == target).ExecuteAsync();
         return objects.FirstOrDefault();
-    
+
+    }
+
+    internal async Task<List<CollectableObject>> GetRandom(Guid userId, int offset, int count)
+    {
+        var things = await GetThings();
+        var random = new Random(userId.GetHashCode());
+        if (offset == -1)
+        {
+            offset = random.Next(0, (things?.SelectMany(t => t.Value).Count() ?? 2) - 2);
+        }
+        var target = things?.SelectMany(t => t.Value).OrderBy(t => random.Next()).Skip(offset).Take(count).ToList() ?? new();
+
+        var objects = await objectTable.Where(o => o.Locale == "en" && target.Contains(o.Name)).ExecuteAsync();
+        return objects.ToList();
     }
 }
 
