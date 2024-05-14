@@ -58,6 +58,7 @@ builder.AddCoflAuthService();
 builder.Services.AddCoflnetCore();
 builder.Services.AddSingleton<ImagesService>();
 builder.Services.AddSingleton<ObjectService>();
+builder.Services.AddSingleton<StatsService>();
 builder.Services.AddSingleton<IAmazonS3>(sb =>
 {
     AmazonS3Config awsCofig = new AmazonS3Config

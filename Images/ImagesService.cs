@@ -12,9 +12,10 @@ public class ImagesService
     private readonly ILogger<ImagesService> logger;
     private readonly IAmazonS3 s3Client;
     private readonly string bucketName;
-    private readonly Table<CapturedImage> categoryService;
+    private readonly Table<CapturedImage> imageTable;
+    private readonly StatsService statsService;
 
-    public ImagesService(ILogger<ImagesService> logger, IAmazonS3 s3Client, IConfiguration config, ISession session)
+    public ImagesService(ILogger<ImagesService> logger, IAmazonS3 s3Client, IConfiguration config, ISession session, StatsService statsService)
     {
         this.logger = logger;
         this.s3Client = s3Client;
@@ -29,9 +30,9 @@ public class ImagesService
             .Column(t => t.ContentType)
             .Column(t => t.Size)
         );
-        categoryService = new Table<CapturedImage>(session, mapping, "named_images");
-        categoryService.CreateIfNotExists();
-        session.Execute("DROP TABLE IF EXISTS images");
+        imageTable = new Table<CapturedImage>(session, mapping, "named_images");
+        imageTable.CreateIfNotExists();
+        this.statsService = statsService;
     }
 
     public async Task<CapturedImage> UploadFile(string label, Guid userId, IFormFile file)
@@ -47,7 +48,7 @@ public class ImagesService
             ContentType = contentType,
             Size = file.Length
         };
-        var info = await categoryService.Insert(newFile).ExecuteAsync();
+        var info = await imageTable.Insert(newFile).ExecuteAsync();
         var route = $"{label.Replace(" ", "_")}/{newFile.Id}";
         logger.LogInformation($"Putting {route} to S3 bucket {bucketName}");
         using var stream = new MemoryStream();
@@ -60,12 +61,13 @@ public class ImagesService
             Key = route,
             DisablePayloadSigning = true
         });
+        await statsService.IncreaseStat(userId, "images_uploaded");
         return newFile;
     }
 
     public async Task<CapturedImageWithDownloadUrl> GetImage(string userId, Guid id)
     {
-        var stored = await categoryService.Where(i => i.Id == id).FirstOrDefault().ExecuteAsync();
+        var stored = await imageTable.Where(i => i.Id == id).FirstOrDefault().ExecuteAsync();
         if (stored == null)
         {
             return null;

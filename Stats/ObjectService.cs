@@ -8,8 +8,9 @@ public class ObjectService
 {
     private readonly Table<CollectableObject> objectTable;
     private ILogger<ObjectService> logger;
+    private StatsService statsService;
 
-    public ObjectService(ISession session, ILogger<ObjectService> logger)
+    public ObjectService(ISession session, ILogger<ObjectService> logger, StatsService statsService)
     {
         var mapping = new MappingConfiguration()
             .Define(new Map<CollectableObject>()
@@ -28,6 +29,7 @@ public class ObjectService
         }
 
         this.logger = logger;
+        this.statsService = statsService;
     }
 
     private async Task CreateObjects()
@@ -108,6 +110,18 @@ public class ObjectService
         var text = await File.ReadAllTextAsync("words.json");
         var categories = JsonSerializer.Deserialize<Dictionary<string, string[]>>(text);
         return categories;
+    }
+
+    public async Task<CollectableObject?> GetNextObjectToCollect(Guid userId)
+    {
+        var stat = (int) await statsService.GetStat(userId, "objects_collected");
+        var things = await GetThings();
+        var random = new Random(userId.GetHashCode());
+        var target = things?.SelectMany(t => t.Value).OrderBy(t => random.Next()).Skip(stat).FirstOrDefault();
+
+        var objects = await objectTable.Where(o => o.Locale == "en" && o.Name == target).ExecuteAsync();
+        return objects.FirstOrDefault();
+    
     }
 }
 

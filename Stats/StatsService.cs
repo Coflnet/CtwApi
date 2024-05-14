@@ -19,7 +19,7 @@ public class StatsService
         statsService.CreateIfNotExists();
     }
 
-    public async Task IncreaseStat(Guid userId, string statName, long value)
+    public async Task IncreaseStat(Guid userId, string statName, long value = 1)
     {
         await statsService.Where(s => s.UserId == userId && s.StatName == statName)
             .Select(s => new Stat() { Value = value })
