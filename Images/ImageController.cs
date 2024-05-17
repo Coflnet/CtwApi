@@ -41,6 +41,14 @@ public class ImageController : ControllerBase
         return await imageService.UploadFile(label, userId, file);
     }
 
+    [HttpPost("images/{id}/description")]
+    [Authorize]
+    public async Task<CapturedImage> AddDescription(Guid id, [FromBody] string description)
+    {
+        var userId = Guid.Parse(User.Claims.FirstOrDefault(c => c.Type == "sub").Value);
+        return await imageService.AddDescription(id, userId, description);
+    }
+
     /// <summary>
     /// Get image metadata with download url
     /// </summary>

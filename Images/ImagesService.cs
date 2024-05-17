@@ -14,8 +14,9 @@ public class ImagesService
     private readonly string bucketName;
     private readonly Table<CapturedImage> imageTable;
     private readonly StatsService statsService;
+    private readonly ObjectService objectService;
 
-    public ImagesService(ILogger<ImagesService> logger, IAmazonS3 s3Client, IConfiguration config, ISession session, StatsService statsService)
+    public ImagesService(ILogger<ImagesService> logger, IAmazonS3 s3Client, IConfiguration config, ISession session, StatsService statsService, ObjectService objectService)
     {
         this.logger = logger;
         this.s3Client = s3Client;
@@ -33,6 +34,7 @@ public class ImagesService
         imageTable = new Table<CapturedImage>(session, mapping, "named_images");
         imageTable.CreateIfNotExists();
         this.statsService = statsService;
+        this.objectService = objectService;
     }
 
     public async Task<CapturedImage> UploadFile(string label, Guid userId, IFormFile file)
@@ -61,8 +63,44 @@ public class ImagesService
             Key = route,
             DisablePayloadSigning = true
         });
+        var currentTask = objectService.CurrentLabeltoCollect(userId);
         await statsService.IncreaseStat(userId, "images_uploaded");
+        var obj = await objectService.GetObject("en", label);
+        if (obj != null)
+        {
+            var value = obj.Value;
+            if (await currentTask == label)
+                value *= 2;
+            await statsService.IncreaseStat(userId, "exp", value);
+            newFile.Metadata = new Dictionary<string, string>()
+            {
+                { "rewarded", value.ToString() }
+            };
+            if (obj.Value > 10)
+                await objectService.DecreaseValueTo("en", label, obj.Value -= 10);
+        }
         return newFile;
+    }
+
+    public async Task<CapturedImage> AddDescription(Guid id, Guid userId, string description)
+    {
+        var stored = await imageTable.Where(i => i.Id == id).FirstOrDefault().ExecuteAsync();
+        if (stored == null)
+        {
+            throw new ApiException("not_found", "Image not found");
+        }
+        if (stored.UserId != userId)
+        {
+            throw new ApiException("forbidden", "You are not allowed to access this image");
+        }
+        stored.Description = description;
+        if (stored.Metadata?.TryGetValue("rewarded", out var value) ?? false)
+        {
+            Console.WriteLine($"Adding {value} exp to user {stored.UserId} for description");
+            await statsService.IncreaseStat(stored.UserId, "exp", int.Parse(value));
+        }
+        await imageTable.Where(i => i.Id == id).Select(i => new CapturedImage() { Description = description }).Update().ExecuteAsync();
+        return stored;
     }
 
     public async Task<CapturedImageWithDownloadUrl> GetImage(string userId, Guid id)
@@ -72,7 +110,7 @@ public class ImagesService
         {
             return null;
         }
-        if(userId != "admin" && stored.UserId != Guid.Parse(userId))
+        if (userId != "admin" && stored.UserId != Guid.Parse(userId))
         {
             throw new ApiException("forbidden", "You are not allowed to access this image");
         }

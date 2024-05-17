@@ -87,16 +87,16 @@ public class ObjectService
         return await objectTable.Where(o => o.Category == category).ExecuteAsync();
     }
 
-    public async Task DecreaseValueTo(string objectName, long value)
+    public async Task DecreaseValueTo(string locale, string objectName, long value)
     {
-        await objectTable.Where(o => o.Name == objectName)
+        await objectTable.Where(o => o.Name == objectName && o.Locale == locale)
             .Select(o => new CollectableObject() { Value = value })
             .Update().ExecuteAsync();
     }
 
-    public async Task<CollectableObject?> GetObject(string name)
+    public async Task<CollectableObject?> GetObject(string locale, string name)
     {
-        return (await objectTable.Where(o => o.Name == name).ExecuteAsync()).FirstOrDefault();
+        return (await objectTable.Where(o => o.Name == name && o.Locale == locale).ExecuteAsync()).FirstOrDefault();
     }
 
     public async Task<IEnumerable<Category>> GetCategories()
@@ -112,13 +112,17 @@ public class ObjectService
         return categories;
     }
 
-    public async Task<CollectableObject?> GetNextObjectToCollect(Guid userId)
+    public async Task<string?> CurrentLabeltoCollect(Guid userId)
     {
         var stat = (int)await statsService.GetStat(userId, "objects_collected");
         var things = await GetThings();
         var random = new Random(userId.GetHashCode());
-        var target = things?.SelectMany(t => t.Value).OrderBy(t => random.Next()).Skip(stat).FirstOrDefault();
+        return things?.SelectMany(t => t.Value).OrderBy(t => random.Next()).Skip(stat).FirstOrDefault();
+    }
 
+    public async Task<CollectableObject?> GetNextObjectToCollect(Guid userId)
+    {
+        var target = await CurrentLabeltoCollect(userId);
         var objects = await objectTable.Where(o => o.Locale == "en" && o.Name == target).ExecuteAsync();
         return objects.FirstOrDefault();
 
