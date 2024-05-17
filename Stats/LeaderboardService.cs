@@ -8,6 +8,7 @@ public class LeaderboardService
 {
     IScoresApi scoresApi;
     Table<Profile> profileTable;
+    string prefix = "ctw_";
 
     public LeaderboardService(IScoresApi scoresApi, ISession session)
     {
@@ -35,8 +36,13 @@ public class LeaderboardService
 
     public async Task<IEnumerable<BoardEntry>> GetLeaderboard(string leaderboardId, int offset = 0, int count = 10)
     {
-        var users = await scoresApi.ScoresLeaderboardSlugGetAsync(leaderboardId, offset, count);
+        var users = await scoresApi.ScoresLeaderboardSlugGetAsync(GetPrfixed(leaderboardId), offset, count);
         return await FormatWithProfile(users);
+    }
+
+    private string GetPrfixed(string leaderboardId)
+    {
+        return prefix + leaderboardId;
     }
 
     private async Task<IEnumerable<BoardEntry>> FormatWithProfile(List<BoardScore> users)
@@ -52,7 +58,7 @@ public class LeaderboardService
 
     public async Task<IEnumerable<BoardEntry>> GetLeaderboardAroundMe(string leaderboardId, Guid userId, int count = 10)
     {
-        var around = await scoresApi.ScoresLeaderboardSlugUserUserIdGetAsync(leaderboardId, userId.ToString(), count, count / 2);
+        var around = await scoresApi.ScoresLeaderboardSlugUserUserIdGetAsync(GetPrfixed(leaderboardId), userId.ToString(), count, count / 2);
         return await FormatWithProfile(around);
     }
 
@@ -68,7 +74,7 @@ public class LeaderboardService
 
     public async Task SetScore(string leaderboardId, Guid userId, long score)
     {
-        await scoresApi.ScoresLeaderboardSlugPostAsync(leaderboardId, new()
+        await scoresApi.ScoresLeaderboardSlugPostAsync(GetPrfixed(leaderboardId), new()
         {
             Confidence = 1,
             Score = score,
@@ -80,6 +86,6 @@ public class LeaderboardService
 
     public async Task<long> GetRankOf(string leaderboardId, Guid userId)
     {
-        return await scoresApi.ScoresLeaderboardSlugUserUserIdRankGetAsync(leaderboardId, userId.ToString());
+        return await scoresApi.ScoresLeaderboardSlugUserUserIdRankGetAsync(GetPrfixed(leaderboardId), userId.ToString());
     }
 }

@@ -89,7 +89,7 @@ public class ImagesService
     private async Task UpdateExpScore(Guid userId)
     {
         var expStat = await statsService.GetStat(userId, "exp");
-        await leaderboardService.SetScore("images_uploaded", userId, expStat);
+        await leaderboardService.SetScore("exp_overall", userId, expStat);
     }
 
     public async Task<CapturedImage> AddDescription(Guid id, Guid userId, string description)
