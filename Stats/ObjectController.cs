@@ -33,7 +33,7 @@ public class ObjectController : ControllerBase
 
     [HttpGet("objects/challenge")]
     [Authorize]
-    public async Task<List<CollectableObject>> GetNextObject(int offset = -1, int count = 5)
+    public async Task<List<CollectableObject>> GetChellenge(int offset = -1, int count = 5)
     {
         var userId = Guid.Parse(User.Claims.FirstOrDefault(c => c.Type == "sub")?.Value ?? throw new ApiException("missing_user_id", "User id not found in claims"));
         return await objectService.GetRandom(userId, offset, count);
