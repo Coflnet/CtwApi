@@ -15,8 +15,9 @@ public class ImagesService
     private readonly Table<CapturedImage> imageTable;
     private readonly StatsService statsService;
     private readonly ObjectService objectService;
+    private readonly LeaderboardService leaderboardService;
 
-    public ImagesService(ILogger<ImagesService> logger, IAmazonS3 s3Client, IConfiguration config, ISession session, StatsService statsService, ObjectService objectService)
+    public ImagesService(ILogger<ImagesService> logger, IAmazonS3 s3Client, IConfiguration config, ISession session, StatsService statsService, ObjectService objectService, LeaderboardService leaderboardService)
     {
         this.logger = logger;
         this.s3Client = s3Client;
@@ -35,6 +36,7 @@ public class ImagesService
         imageTable.CreateIfNotExists();
         this.statsService = statsService;
         this.objectService = objectService;
+        this.leaderboardService = leaderboardService;
     }
 
     public async Task<CapturedImage> UploadFile(string label, Guid userId, IFormFile file)
@@ -76,10 +78,18 @@ public class ImagesService
             {
                 { "rewarded", value.ToString() }
             };
+            await imageTable.Where(i => i.Id == newFile.Id).Select(i => new CapturedImage() { Metadata = newFile.Metadata }).Update().ExecuteAsync();
+            await UpdateExpScore(userId);
             if (obj.Value > 10)
                 await objectService.DecreaseValueTo("en", label, obj.Value -= 10);
         }
         return newFile;
+    }
+
+    private async Task UpdateExpScore(Guid userId)
+    {
+        var expStat = await statsService.GetStat(userId, "exp");
+        await leaderboardService.SetScore("images_uploaded", userId, expStat);
     }
 
     public async Task<CapturedImage> AddDescription(Guid id, Guid userId, string description)

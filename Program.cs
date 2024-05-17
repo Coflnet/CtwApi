@@ -59,6 +59,11 @@ builder.Services.AddCoflnetCore();
 builder.Services.AddSingleton<ImagesService>();
 builder.Services.AddSingleton<ObjectService>();
 builder.Services.AddSingleton<StatsService>();
+builder.Services.AddSingleton<LeaderboardService>();
+builder.Services.AddSingleton<Coflnet.Leaderboard.Client.Api.IScoresApi>(sb =>
+{
+    return new Coflnet.Leaderboard.Client.Api.ScoresApi(builder.Configuration["LEADERBOARD_BASE_URL"] ?? throw new ArgumentNullException("LEADERBOARD_BASE_URL"));
+});
 builder.Services.AddSingleton<IAmazonS3>(sb =>
 {
     AmazonS3Config awsCofig = new AmazonS3Config

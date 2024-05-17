@@ -12,7 +12,7 @@
   <ItemGroup>
     <PackageReference Include="AWSSDK.S3" Version="3.7.307.28" />
     <PackageReference Include="Coflnet.Core" Version="0.2.0" />
-    <PackageReference Include="Coflnet.Leaderboard.Client" Version="0.2.2" />
+    <PackageReference Include="Coflnet.Leaderboard.Client" Version="0.3.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.4" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.2" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
