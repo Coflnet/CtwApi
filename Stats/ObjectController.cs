@@ -51,7 +51,7 @@ public class ObjectController : ControllerBase
     [Authorize]
     public async Task<CollectableObject?> GetObject(string objectId)
     {
-        return await objectService.GetObject(objectId);
+        return await objectService.GetObject("en", objectId);
     }
 
     [HttpGet("objects/category/{categoryName}")]
