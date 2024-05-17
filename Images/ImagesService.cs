@@ -73,15 +73,17 @@ public class ImagesService
             var value = obj.Value;
             if (await currentTask == label)
                 value *= 2;
-            await statsService.IncreaseStat(userId, "exp", value);
+            var statTask = statsService.IncreaseStat(userId, "exp", value);
             newFile.Metadata = new Dictionary<string, string>()
             {
                 { "rewarded", value.ToString() }
             };
-            await imageTable.Where(i => i.Id == newFile.Id).Select(i => new CapturedImage() { Metadata = newFile.Metadata }).Update().ExecuteAsync();
+            await imageTable.Where(i => i.ObjectLabel == newFile.ObjectLabel && i.UserId == newFile.UserId && i.Day == newFile.Day)
+                    .Select(i => new CapturedImage() { Metadata = newFile.Metadata }).Update().ExecuteAsync();
             await UpdateExpScore(userId);
             if (obj.Value > 10)
                 await objectService.DecreaseValueTo("en", label, obj.Value -= 10);
+            await statTask;
         }
         return newFile;
     }
