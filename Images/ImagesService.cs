@@ -111,7 +111,8 @@ public class ImagesService
             Console.WriteLine($"Adding {value} exp to user {stored.UserId} for description");
             await statsService.IncreaseStat(stored.UserId, "exp", int.Parse(value));
         }
-        await imageTable.Where(i => i.Id == id).Select(i => new CapturedImage() { Description = description }).Update().ExecuteAsync();
+        await imageTable.Where(i => i.ObjectLabel == stored.ObjectLabel && i.UserId == stored.UserId && i.Day == stored.Day)
+            .Select(i => new CapturedImage() { Description = description }).Update().ExecuteAsync();
         return stored;
     }
 
