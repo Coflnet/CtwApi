@@ -2,6 +2,8 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.JsonWebTokens;
+using System.Security.Claims;
+using Coflnet.Core;
 
 namespace Coflnet.Auth;
 
@@ -52,5 +54,10 @@ public static class AuthExtensions
                 };
             });
         return builder.Services;
+    }
+
+    public static Guid UserId(this ClaimsPrincipal user)
+    {
+        return Guid.Parse(user.Claims.FirstOrDefault(c => c.Type == "sub")?.Value ?? throw new ApiException("missing_user_id", "User id not found in claims"));
     }
 }

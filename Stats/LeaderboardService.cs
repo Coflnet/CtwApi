@@ -19,6 +19,8 @@ public class LeaderboardService
             .Column(t => t.Name)
             .Column(t => t.Avatar)
         );
+        profileTable = new Table<Profile>(session, mapping, "leaderboard_profiles");
+        profileTable.CreateIfNotExists();
     }
 
     public class Profile

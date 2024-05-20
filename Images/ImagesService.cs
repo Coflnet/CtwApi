@@ -16,6 +16,7 @@ public class ImagesService
     private readonly StatsService statsService;
     private readonly ObjectService objectService;
     private readonly LeaderboardService leaderboardService;
+    private readonly SkipService skipService;
 
     public ImagesService(ILogger<ImagesService> logger, IAmazonS3 s3Client, IConfiguration config, ISession session, StatsService statsService, ObjectService objectService, LeaderboardService leaderboardService)
     {
@@ -72,7 +73,14 @@ public class ImagesService
         {
             var value = obj.Value;
             if (await currentTask == label)
+            {
                 value *= 2;
+                await statsService.IncreaseStat(userId, "current_offset"); // tick current forward
+            }
+            else
+            {
+                await skipService.Collected(userId, label);
+            }
             var statTask = statsService.IncreaseStat(userId, "exp", value);
             newFile.Metadata = new Dictionary<string, string>()
             {

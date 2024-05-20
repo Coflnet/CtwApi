@@ -114,7 +114,7 @@ public class ObjectService
 
     public async Task<string?> CurrentLabeltoCollect(Guid userId)
     {
-        var stat = (int)await statsService.GetStat(userId, "objects_collected");
+        var stat = (int)await statsService.GetStat(userId, "current_offset");
         var things = await GetThings();
         var random = new Random(userId.GetHashCode());
         return things?.SelectMany(t => t.Value).OrderBy(t => random.Next()).Skip(stat).FirstOrDefault();
