@@ -60,4 +60,9 @@ public static class AuthExtensions
     {
         return Guid.Parse(user.Claims.FirstOrDefault(c => c.Type == "sub")?.Value ?? throw new ApiException("missing_user_id", "User id not found in claims"));
     }
+
+    public static DateTime RoundDown(this DateTime date, TimeSpan span)
+    {
+        return new DateTime(date.Ticks / span.Ticks * span.Ticks);
+    }
 }

@@ -4,3 +4,8 @@ public class Stat
     public string StatName { get; set; }
     public long Value { get; set; }
 }
+
+public class TimedStat : Stat
+{
+    public int ExpiresOnDay { get; set; }
+}

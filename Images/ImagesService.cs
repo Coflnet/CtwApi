@@ -2,6 +2,7 @@ using Amazon.S3;
 using Amazon.S3.Model;
 using Cassandra.Data.Linq;
 using Cassandra.Mapping;
+using Coflnet.Auth;
 using Coflnet.Core;
 using Microsoft.AspNetCore.StaticFiles;
 using ISession = Cassandra.ISession;
@@ -81,25 +82,36 @@ public class ImagesService
             {
                 await skipService.Collected(userId, label);
             }
-            var statTask = statsService.IncreaseStat(userId, "exp", value);
+
             newFile.Metadata = new Dictionary<string, string>()
             {
                 { "rewarded", value.ToString() }
             };
             await imageTable.Where(i => i.ObjectLabel == newFile.ObjectLabel && i.UserId == newFile.UserId && i.Day == newFile.Day)
                     .Select(i => new CapturedImage() { Metadata = newFile.Metadata }).Update().ExecuteAsync();
-            await UpdateExpScore(userId);
+            await UpdateExpScore(userId, value);
             if (obj.Value > 10)
                 await objectService.DecreaseValueTo("en", label, obj.Value -= 10);
-            await statTask;
         }
         return newFile;
     }
 
-    private async Task UpdateExpScore(Guid userId)
+    private async Task UpdateExpScore(Guid userId, long value)
     {
+        var statTask = statsService.IncreaseStat(userId, "exp", value);
+        var dailyStatTask = statsService.IncreaseExpireStat(DateTimeOffset.UtcNow, userId, "daily_exp", value);
+        var lastDayOfWeek = DateTime.Now.RoundDown(TimeSpan.FromDays(7)).AddDays(7);
+        var weeklyExpTask = statsService.IncreaseExpireStat(lastDayOfWeek, userId, "weekly_exp", value);
+        await statTask;
+        await dailyStatTask;
+        await weeklyExpTask;
         var expStat = await statsService.GetStat(userId, "exp");
         await leaderboardService.SetScore("exp_overall", userId, expStat);
+        var dailyExpStat = await statsService.GetExpireStat(DateTimeOffset.UtcNow, userId, "daily_exp");
+        var formatted = DateTime.UtcNow.ToString("yyyyMMdd");
+        await leaderboardService.SetScore("exp_daily_" + formatted, userId, dailyExpStat);
+        var weeklyExpStat = await statsService.GetExpireStat(lastDayOfWeek, userId, "weekly_exp");
+        await leaderboardService.SetScore("exp_weekly_" + lastDayOfWeek.ToString("yyyyMMdd"), userId, weeklyExpStat);
     }
 
     public async Task<CapturedImage> AddDescription(Guid id, Guid userId, string description)

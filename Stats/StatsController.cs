@@ -1,3 +1,4 @@
+using Coflnet.Auth;
 using Coflnet.Core;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -28,5 +29,21 @@ public class StatsController : ControllerBase
     {
         var userId = Guid.Parse(User.Claims.FirstOrDefault(c => c.Type == "sub")?.Value ?? throw new ApiException("missing_user_id", "User id not found in claims"));
         return await statsService.GetStat(userId, statName);
+    }
+
+    [HttpGet("stats/daily_exp")]
+    [Authorize]
+
+    public async Task<long> GetDailyExpStats()
+    {
+        return await statsService.GetExpireStat(DateTime.Now, User.UserId(), "daily_exp");
+    }
+    [HttpGet("stats/weekly_exp")]
+    [Authorize]
+
+    public async Task<long> GetWeeklyExpStats()
+    {
+        var lastDayOfWeek = DateTime.Now.RoundDown(TimeSpan.FromDays(7)).AddDays(7);
+        return await statsService.GetExpireStat(lastDayOfWeek, User.UserId(), "weekly_exp");
     }
 }
