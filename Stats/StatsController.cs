@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 [ApiController]
+[Route("api/stats")]
 public class StatsController : ControllerBase
 {
     private readonly StatsService statsService;
@@ -15,15 +16,23 @@ public class StatsController : ControllerBase
         this.logger = logger;
     }
 
-    [HttpGet("stats")]
+    [HttpGet("all")]
     [Authorize]
-    public async Task<IEnumerable<Stat>> GetStats()
+    public async Task<IEnumerable<Stat>> GetAllStats()
     {
         var userId = Guid.Parse(User.Claims.FirstOrDefault(c => c.Type == "sub")?.Value ?? throw new ApiException("missing_user_id", "User id not found in claims"));
         return await statsService.GetStats(userId);
     }
 
-    [HttpGet("stats/{statName}")]
+
+    [HttpGet("user/{userId}")]
+    [Authorize]
+    public async Task<IEnumerable<Stat>> GetUserStats(Guid userId)
+    {
+        return await statsService.GetStats(userId);
+    }
+
+    [HttpGet("stat/{statName}")]
     [Authorize]
     public async Task<long> GetStat(string statName)
     {
@@ -31,14 +40,14 @@ public class StatsController : ControllerBase
         return await statsService.GetStat(userId, statName);
     }
 
-    [HttpGet("stats/daily_exp")]
+    [HttpGet("stat/daily_exp")]
     [Authorize]
 
     public async Task<long> GetDailyExpStats()
     {
         return await statsService.GetExpireStat(DateTime.Now, User.UserId(), "daily_exp");
     }
-    [HttpGet("stats/weekly_exp")]
+    [HttpGet("stat/weekly_exp")]
     [Authorize]
 
     public async Task<long> GetWeeklyExpStats()
