@@ -62,6 +62,8 @@ builder.Services.AddSingleton<StatsService>();
 builder.Services.AddSingleton<LeaderboardService>();
 builder.Services.AddSingleton<SkipService>();
 builder.Services.AddHostedService<DeletorService>();
+builder.Services.AddSingleton<EventBusService>();
+builder.Services.AddSingleton<ChallengeService>();
 builder.Services.AddSingleton<Coflnet.Leaderboard.Client.Api.IScoresApi>(sb =>
 {
     return new Coflnet.Leaderboard.Client.Api.ScoresApi(builder.Configuration["LEADERBOARD_BASE_URL"] ?? throw new ArgumentNullException("LEADERBOARD_BASE_URL"));

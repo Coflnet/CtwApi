@@ -77,6 +77,11 @@ public class StatsService
         var yesterday = GetTimeKey(DateTimeOffset.UtcNow.AddDays(-1));
         await timedStatTable.Where(s => s.ExpiresOnDay == yesterday).Delete().ExecuteAsync();
     }
+
+    internal async Task AddExp(Guid userId, int reward)
+    {
+        await IncreaseStat(userId, "exp", reward);
+    }
 }
 
 public class DeletorService : BackgroundService

@@ -18,8 +18,9 @@ public class ImagesService
     private readonly ObjectService objectService;
     private readonly LeaderboardService leaderboardService;
     private readonly SkipService skipService;
+    private readonly EventBusService eventBus;
 
-    public ImagesService(ILogger<ImagesService> logger, IAmazonS3 s3Client, IConfiguration config, ISession session, StatsService statsService, ObjectService objectService, LeaderboardService leaderboardService)
+    public ImagesService(ILogger<ImagesService> logger, IAmazonS3 s3Client, IConfiguration config, ISession session, StatsService statsService, ObjectService objectService, LeaderboardService leaderboardService, EventBusService eventBus)
     {
         this.logger = logger;
         this.s3Client = s3Client;
@@ -39,6 +40,7 @@ public class ImagesService
         this.statsService = statsService;
         this.objectService = objectService;
         this.leaderboardService = leaderboardService;
+        this.eventBus = eventBus;
     }
 
     public async Task<CapturedImage> UploadFile(string label, Guid userId, IFormFile file)
@@ -92,6 +94,13 @@ public class ImagesService
             await UpdateExpScore(userId, value);
             if (obj.Value > 10)
                 await objectService.DecreaseValueTo("en", label, obj.Value -= 10);
+            eventBus.OnImageUploaded(new ImageUploadEvent()
+            {
+                UserId = userId,
+                Exp = (int)value,
+                ImageUrl = route,
+                label = label
+            });
         }
         return newFile;
     }
