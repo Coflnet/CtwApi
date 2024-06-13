@@ -27,7 +27,7 @@ public class LeaderboardService
     {
         public Guid UserId { get; set; }
         public string Name { get; set; }
-        public string Avatar { get; set; }
+        public string? Avatar { get; set; }
     }
 
     public class PublicProfile
@@ -59,7 +59,7 @@ public class LeaderboardService
         var profiles = await profileTable.Where(p => ids.Contains(p.UserId)).ExecuteAsync();
         return users.Select(u => new BoardEntry()
         {
-            User = profiles.FirstOrDefault(p => p.UserId == Guid.Parse(u.UserId)),
+            User = profiles.FirstOrDefault(p => p.UserId == Guid.Parse(u.UserId)) ?? new Profile() { Name = "Unknown", Avatar = null, UserId = Guid.Parse(u.UserId) },
             Score = u.Score
         });
     }
