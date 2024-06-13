@@ -30,6 +30,12 @@ public class LeaderboardService
         public string Avatar { get; set; }
     }
 
+    public class PublicProfile
+    {
+        public string Name { get; set; }
+        public string Avatar { get; set; }
+    }
+
     public class BoardEntry
     {
         public Profile? User { get; set; }
@@ -64,9 +70,10 @@ public class LeaderboardService
         return await FormatWithProfile(around);
     }
 
-    public async Task<Profile> GetProfile(Guid userId)
+    public async Task<PublicProfile> GetProfile(Guid userId)
     {
-        return await profileTable.Where(p => p.UserId == userId).FirstOrDefault().ExecuteAsync();
+        var internalProfile = await profileTable.Where(p => p.UserId == userId).FirstOrDefault().ExecuteAsync();
+        return new PublicProfile() { Name = internalProfile?.Name ?? "Unknown", Avatar = internalProfile?.Avatar ?? "" };
     }
 
     public async Task SetProfile(Guid userId, string name, string avatar)

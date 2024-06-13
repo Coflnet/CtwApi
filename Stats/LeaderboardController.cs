@@ -40,13 +40,13 @@ public class LeaderboardController : ControllerBase
     }
 
     [HttpGet("profile")]
-    public async Task<LeaderboardService.Profile> GetProfile()
+    public async Task<LeaderboardService.PublicProfile> GetProfile()
     {
         return await leaderboardService.GetProfile(GetUserId());
     }
 
     [HttpPost("profile")]
-    public async Task SetProfile([FromBody] LeaderboardService.Profile profile)
+    public async Task SetProfile([FromBody] LeaderboardService.PublicProfile profile)
     {
         var userId = GetUserId();
         await leaderboardService.SetProfile(userId, profile.Name, profile.Avatar);
