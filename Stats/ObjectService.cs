@@ -21,10 +21,9 @@ public class ObjectService
         );
         objectTable = new Table<CollectableObject>(session, mapping, "name_objects");
         objectTable.CreateIfNotExists();
-        var existing = objectTable.FirstOrDefault().Execute();
+        var existing = objectTable.Where(o=>o.Locale=="en").FirstOrDefault().Execute();
         if (existing == null)
         {
-            session.Execute("DROP TABLE IF EXISTS objects");
             Task.Run(CreateObjects);
         }
 
