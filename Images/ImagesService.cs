@@ -19,6 +19,7 @@ public class ImagesService
     private readonly LeaderboardService leaderboardService;
     private readonly SkipService skipService;
     private readonly EventBusService eventBus;
+    private readonly MultiplierService multiplierService;
 
     public ImagesService(ILogger<ImagesService> logger,
                          IAmazonS3 s3Client,
@@ -28,7 +29,8 @@ public class ImagesService
                          ObjectService objectService,
                          LeaderboardService leaderboardService,
                          EventBusService eventBus,
-                         SkipService skipService)
+                         SkipService skipService,
+                         MultiplierService multiplierService)
     {
         this.logger = logger;
         this.s3Client = s3Client;
@@ -50,6 +52,7 @@ public class ImagesService
         this.leaderboardService = leaderboardService;
         this.eventBus = eventBus;
         this.skipService = skipService;
+        this.multiplierService = multiplierService;
     }
 
     public async Task<CapturedImage> UploadFile(string label, Guid userId, IFormFile file)
@@ -83,7 +86,7 @@ public class ImagesService
         var obj = await objectService.GetObject("en", label);
         if (obj != null)
         {
-            var value = obj.Value;
+            float value = obj.Value;
             if (await currentTask == label)
             {
                 value *= 2;
@@ -93,6 +96,12 @@ public class ImagesService
             {
                 await skipService.Collected(userId, label);
             }
+            var multiplier = await multiplierService.GetMultipliers();
+            var matchingMultiplier = multiplier.FirstOrDefault(m => m.Category == obj.Category);
+            if (matchingMultiplier != null)
+            {
+                value *= matchingMultiplier.Multiplier;
+            }
 
             newFile.Metadata = new Dictionary<string, string>()
             {
@@ -100,7 +109,7 @@ public class ImagesService
             };
             await imageTable.Where(i => i.ObjectLabel == newFile.ObjectLabel && i.UserId == newFile.UserId && i.Day == newFile.Day)
                     .Select(i => new CapturedImage() { Metadata = newFile.Metadata }).Update().ExecuteAsync();
-            await UpdateExpScore(userId, value);
+            await UpdateExpScore(userId, RounUpTo5(value));
             if (obj.Value > 10)
                 await objectService.DecreaseValueTo("en", label, obj.Value -= 10);
             eventBus.OnImageUploaded(new ImageUploadEvent()
@@ -112,6 +121,11 @@ public class ImagesService
             });
         }
         return newFile;
+
+        static int RounUpTo5(float value)
+        {
+            return (((int)value) / 5 + 1) * 5;
+        }
     }
 
     private async Task UpdateExpScore(Guid userId, long value)

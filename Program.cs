@@ -63,6 +63,7 @@ builder.Services.AddSingleton<LeaderboardService>();
 builder.Services.AddSingleton<SkipService>();
 builder.Services.AddHostedService<DeletorService>();
 builder.Services.AddSingleton<EventBusService>();
+builder.Services.AddSingleton<MultiplierService>();
 builder.Services.AddSingleton<ChallengeService>();
 builder.Services.AddSingleton<Coflnet.Leaderboard.Client.Api.IScoresApi>(sb =>
 {
