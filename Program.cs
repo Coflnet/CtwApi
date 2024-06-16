@@ -96,6 +96,12 @@ app.UseSwagger(c =>
 });
 
 app.UseCoflnetCore();
+// log every request
+app.Use(async (context, next) =>
+{
+    Console.WriteLine($"Request: {context.Request.Path}");
+    await next();
+});
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
