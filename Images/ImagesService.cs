@@ -60,15 +60,18 @@ public class ImagesService
         var fileName = file.FileName.Trim();
         if (!new FileExtensionContentTypeProvider().TryGetContentType(Path.GetFileName(fileName), out var contentType))
             contentType = "application/octet-stream";
+        var existingCollection = imageTable.Where(i => i.ObjectLabel == label && i.UserId == userId).FirstOrDefault().ExecuteAsync();
         var currentTask = objectService.CurrentLabeltoCollect(userId);
         var objectTask = objectService.GetObject("en", label);
+        var today = DateTime.UtcNow.DayOfYear + (DateTime.UtcNow.Year - 2020) * 365;
         var newFile = new CapturedImage()
         {
             Id = Guid.NewGuid(),
             UserId = userId,
             ObjectLabel = label,
             ContentType = contentType,
-            Size = file.Length
+            Size = file.Length,
+            Day = today
         };
         var info = await imageTable.Insert(newFile).ExecuteAsync();
         var route = $"{label.Replace(" ", "_")}/{newFile.Id}";
@@ -87,7 +90,8 @@ public class ImagesService
         var obj = await objectTask;
         var rewards = new UploadRewards();
         tasks.Add(statsService.IncreaseStat(userId, "images_uploaded"));
-        if (obj != null)
+        var existing = await existingCollection;
+        if (obj != null && existing?.Day != today) // don't reward for the same object twice a day
         {
             float value = obj.Value;
             rewards.ImageBonus = obj.Value;
@@ -120,9 +124,12 @@ public class ImagesService
             eventBus.OnImageUploaded(new ImageUploadEvent()
             {
                 UserId = userId,
-                Exp = (int)value,
+                Exp = roundedValue,
                 ImageUrl = route,
-                label = label
+                label = label,
+                IsUnique = existing == null,
+                ImageReward = obj.Value,
+                IsCurrent = rewards.IsCurrent
             });
             if (obj.Value > 10)
                 await objectService.DecreaseValueTo("en", label, obj.Value -= 10);

@@ -23,6 +23,16 @@ public class ChallengeController : ControllerBase
         return await challengeService.GetDailyChallenges(User.UserId());
     }
 
+    /// <summary>
+    /// Get the long term challenges for the user
+    /// </summary>
+    /// <returns></returns>
+    [HttpGet("longterm")]
+    public async Task<ChallengeResponse> ChallengeNoLimit()
+    {
+        return await challengeService.GetLongTermChallenges(User.UserId());
+    }
+
     public class ChallengeResponse
     {
         public bool Success { get; set; }
