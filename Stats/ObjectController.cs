@@ -23,6 +23,17 @@ public class ObjectController : ControllerBase
         return await objectService.GetObjects("en");
     }
 
+    /// <summary>
+    /// Returns the newest and highest rewarded objects to collect
+    /// </summary>
+    /// <returns></returns>
+    [HttpGet("new")]
+    [Authorize]
+    public async Task<IEnumerable<CollectableObject>> GetNewObjects(int offset = 0, int count = 10)
+    {
+        return (await objectService.GetObjects("en")).OrderByDescending(o => o.Value).Skip(offset).Take(count);
+    }
+
     [HttpGet("objects/next")]
     [Authorize]
     public async Task<CollectableObject?> GetNextObject()
