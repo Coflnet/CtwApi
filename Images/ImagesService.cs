@@ -64,6 +64,7 @@ public class ImagesService
         var currentTask = objectService.CurrentLabeltoCollect(userId);
         var objectTask = objectService.GetObject("en", label);
         var today = DateTime.UtcNow.DayOfYear + (DateTime.UtcNow.Year - 2020) * 365;
+        var dailyRewardTask = GetRewardsFromDailyQuest(userId, today, label);
         var newFile = new CapturedImage()
         {
             Id = Guid.NewGuid(),
@@ -107,11 +108,16 @@ public class ImagesService
             }
             var multiplier = await multiplierService.GetMultipliers();
             var matchingMultiplier = multiplier.FirstOrDefault(m => m.Category == obj.Category);
+            (var dailyReward, var dailyQuestReward) = await dailyRewardTask;
+            value += dailyQuestReward;
+            rewards.DailyQuestReward = dailyQuestReward;
             if (matchingMultiplier != null)
             {
                 value *= matchingMultiplier.Multiplier;
                 rewards.Multiplier = matchingMultiplier.Multiplier;
             }
+            value += dailyReward; // multiplier doesn't apply to daily reward
+            rewards.DailyItemReward = dailyReward;
             var roundedValue = RounUpTo5(value);
             newFile.Metadata = new Dictionary<string, string>()
             {
@@ -145,6 +151,21 @@ public class ImagesService
         {
             return (((int)value) / 5 + 1) * 5;
         }
+    }
+
+    private async Task<(int itemReward, int querstReward)> GetRewardsFromDailyQuest(Guid userId, int today, string label)
+    {
+        var dailyTask = objectService.GetDailyLabels(userId);
+        var dailyLabels = await dailyTask;
+        if (!dailyLabels.Contains(label))
+        {
+            return (0, 0);
+        }
+        var dailyItemsCollected = await imageTable.Where(i => i.UserId == userId && i.Day == today && dailyLabels.Contains(i.ObjectLabel)).Select(i => i.ObjectLabel).ExecuteAsync();
+        var alreadyCollected = dailyItemsCollected.Count();
+        var reward = (int)Math.Pow(75, alreadyCollected / 2 + 1);
+        var itemReward = (int)Math.Sqrt(Random.Shared.Next(1, 65)) * 25 + 50;
+        return (itemReward, reward);
     }
 
     private async Task UpdateExpScore(Guid userId, long value)

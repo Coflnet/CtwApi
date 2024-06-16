@@ -42,6 +42,14 @@ public class ObjectController : ControllerBase
         return await objectService.GetNextObjectToCollect(userId);
     }
 
+    [HttpGet("objects/daily")]
+    [Authorize]
+    public async Task<List<CollectableObject>> GetDailyObject()
+    {
+        var userId = Guid.Parse(User.Claims.FirstOrDefault(c => c.Type == "sub")?.Value ?? throw new ApiException("missing_user_id", "User id not found in claims"));
+        return await objectService.GetDailyObjects(userId);
+    }
+
     [HttpGet("objects/challenge")]
     [Authorize]
     public async Task<List<CollectableObject>> GetChellenge(int offset = -1, int count = 5)

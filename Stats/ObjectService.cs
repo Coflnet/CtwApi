@@ -21,7 +21,7 @@ public class ObjectService
         );
         objectTable = new Table<CollectableObject>(session, mapping, "name_objects");
         objectTable.CreateIfNotExists();
-        var existing = objectTable.Where(o=>o.Locale=="en").FirstOrDefault().Execute();
+        var existing = objectTable.Where(o => o.Locale == "en").FirstOrDefault().Execute();
         if (existing == null)
         {
             Task.Run(CreateObjects);
@@ -115,8 +115,15 @@ public class ObjectService
     {
         var stat = (int)await statsService.GetStat(userId, "current_offset");
         var things = await GetThings();
-        var random = new Random(userId.GetHashCode());
+        Random random = UserRandom(userId);
         return things?.SelectMany(t => t.Value).OrderBy(t => random.Next()).Skip(stat).FirstOrDefault();
+    }
+
+    private static Random UserRandom(Guid userId)
+    {
+        var intFromFirstBytesofUserId = Convert.ToInt32(userId.ToString("N").Substring(0, 8), 16);
+        var random = new Random(intFromFirstBytesofUserId);
+        return random;
     }
 
     public async Task<CollectableObject?> GetNextObjectToCollect(Guid userId)
@@ -124,7 +131,22 @@ public class ObjectService
         var target = await CurrentLabeltoCollect(userId);
         var objects = await objectTable.Where(o => o.Locale == "en" && o.Name == target).ExecuteAsync();
         return objects.FirstOrDefault();
+    }
 
+    public async Task<List<string>> GetDailyLabels(Guid userId)
+    {
+        var things = await GetThings();
+        var random = UserRandom(userId);
+        var thingsList = things?.SelectMany(t => t.Value).ToList() ?? new();
+        var target = thingsList.OrderBy(t => random.Next()).Skip(DateTime.UtcNow.DayOfYear * 15 % thingsList.Count).Take(15).ToList() ?? new();
+        return target;
+    }
+
+    public async Task<List<CollectableObject>> GetDailyObjects(Guid userId)
+    {
+        var things = await GetDailyLabels(userId);
+        var objects = await objectTable.Where(o => o.Locale == "en" && things.Contains(o.Name)).ExecuteAsync();
+        return objects.ToList();
     }
 
     internal async Task<List<CollectableObject>> GetRandom(Guid userId, int offset, int count)
