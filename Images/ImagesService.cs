@@ -55,11 +55,13 @@ public class ImagesService
         this.multiplierService = multiplierService;
     }
 
-    public async Task<CapturedImage> UploadFile(string label, Guid userId, IFormFile file)
+    public async Task<UploadImageResponse> UploadFile(string label, Guid userId, IFormFile file)
     {
         var fileName = file.FileName.Trim();
         if (!new FileExtensionContentTypeProvider().TryGetContentType(Path.GetFileName(fileName), out var contentType))
             contentType = "application/octet-stream";
+        var currentTask = objectService.CurrentLabeltoCollect(userId);
+        var objectTask = objectService.GetObject("en", label);
         var newFile = new CapturedImage()
         {
             Id = Guid.NewGuid(),
@@ -81,37 +83,40 @@ public class ImagesService
             Key = route,
             DisablePayloadSigning = true
         });
-        var currentTask = objectService.CurrentLabeltoCollect(userId);
-        await statsService.IncreaseStat(userId, "images_uploaded");
-        var obj = await objectService.GetObject("en", label);
+        List<Task> tasks = new List<Task>();
+        var obj = await objectTask;
+        var rewards = new UploadRewards();
+        tasks.Add(statsService.IncreaseStat(userId, "images_uploaded"));
         if (obj != null)
         {
             float value = obj.Value;
+            rewards.ImageBonus = obj.Value;
             if (await currentTask == label)
             {
                 value *= 2;
-                await statsService.IncreaseStat(userId, "current_offset"); // tick current forward
+                rewards.IsCurrent = true;
+                tasks.Add(statsService.IncreaseStat(userId, "current_offset")); // tick current forward
             }
             else
             {
-                await skipService.Collected(userId, label);
+                tasks.Add(skipService.Collected(userId, label));
             }
             var multiplier = await multiplierService.GetMultipliers();
             var matchingMultiplier = multiplier.FirstOrDefault(m => m.Category == obj.Category);
             if (matchingMultiplier != null)
             {
                 value *= matchingMultiplier.Multiplier;
+                rewards.Multiplier = matchingMultiplier.Multiplier;
             }
-
+            var roundedValue = RounUpTo5(value);
             newFile.Metadata = new Dictionary<string, string>()
             {
-                { "rewarded", value.ToString() }
+                { "rewarded", roundedValue.ToString() }
             };
-            await imageTable.Where(i => i.ObjectLabel == newFile.ObjectLabel && i.UserId == newFile.UserId && i.Day == newFile.Day)
-                    .Select(i => new CapturedImage() { Metadata = newFile.Metadata }).Update().ExecuteAsync();
-            await UpdateExpScore(userId, RounUpTo5(value));
-            if (obj.Value > 10)
-                await objectService.DecreaseValueTo("en", label, obj.Value -= 10);
+            rewards.Total = roundedValue;
+            tasks.Add(imageTable.Where(i => i.ObjectLabel == newFile.ObjectLabel && i.UserId == newFile.UserId && i.Day == newFile.Day)
+                    .Select(i => new CapturedImage() { Metadata = newFile.Metadata }).Update().ExecuteAsync());
+            tasks.Add(UpdateExpScore(userId, roundedValue));
             eventBus.OnImageUploaded(new ImageUploadEvent()
             {
                 UserId = userId,
@@ -119,8 +124,15 @@ public class ImagesService
                 ImageUrl = route,
                 label = label
             });
+            if (obj.Value > 10)
+                await objectService.DecreaseValueTo("en", label, obj.Value -= 10);
         }
-        return newFile;
+        await Task.WhenAll(tasks);
+        return new()
+        {
+            Image = newFile,
+            Rewards = rewards
+        };
 
         static int RounUpTo5(float value)
         {

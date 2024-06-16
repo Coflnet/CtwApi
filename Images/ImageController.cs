@@ -30,7 +30,7 @@ public class ImageController : ControllerBase
     [HttpPost("images/{label}"), DisableRequestSizeLimit]
     [Authorize]
     [SwaggerOperation(OperationId = "ApiFileUpload.UploadFile", Summary = "Upload an image", Description = "Upload an image")]
-    public async Task<CapturedImage> UploadImage(string label)
+    public async Task<UploadImageResponse> UploadImage(string label)
     {
         var userId = Guid.Parse(User.Claims.FirstOrDefault(c => c.Type == "sub")?.Value ?? throw new ApiException("missing_user_id", "User id not found in claims"));
         var file = Request.Form.Files.FirstOrDefault();
