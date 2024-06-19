@@ -5,6 +5,7 @@ using Cassandra.Mapping;
 using Coflnet.Auth;
 using Coflnet.Core;
 using Microsoft.AspNetCore.StaticFiles;
+using Newtonsoft.Json;
 using ISession = Cassandra.ISession;
 
 
@@ -140,6 +141,7 @@ public class ImagesService
             if (obj.Value > 10)
                 await objectService.DecreaseValueTo("en", label, obj.Value -= 10);
         }
+        logger.LogInformation("user {userId} uploaded image {route} got rewarded with {rewards}", userId, route, JsonConvert.SerializeObject(rewards));
         await Task.WhenAll(tasks);
         return new()
         {
