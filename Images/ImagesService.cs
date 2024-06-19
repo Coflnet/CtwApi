@@ -157,14 +157,13 @@ public class ImagesService
     {
         var dailyTask = objectService.GetDailyLabels(userId);
         var dailyLabels = await dailyTask;
-        if (!dailyLabels.Contains(label))
+        if (!dailyLabels.TryGetValue(label, out var itemReward))
         {
             return (0, 0);
         }
-        var dailyItemsCollected = await imageTable.Where(i => i.UserId == userId && i.Day == today && dailyLabels.Contains(i.ObjectLabel)).Select(i => i.ObjectLabel).ExecuteAsync();
+        var dailyItemsCollected = await imageTable.Where(i => i.UserId == userId && i.Day == today && dailyLabels.Keys.Contains(i.ObjectLabel)).Select(i => i.ObjectLabel).ExecuteAsync();
         var alreadyCollected = dailyItemsCollected.Count();
         var reward = (int)Math.Pow(75, alreadyCollected / 2 + 1);
-        var itemReward = (int)Math.Sqrt(Random.Shared.Next(1, 65)) * 25 + 50;
         return (itemReward, reward);
     }
 

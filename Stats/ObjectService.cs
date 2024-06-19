@@ -133,19 +133,26 @@ public class ObjectService
         return objects.FirstOrDefault();
     }
 
-    public async Task<List<string>> GetDailyLabels(Guid userId)
+    public async Task<Dictionary<string, int>> GetDailyLabels(Guid userId)
     {
         var things = await GetThings();
         var random = UserRandom(userId);
         var thingsList = things?.SelectMany(t => t.Value).ToList() ?? new();
         var target = thingsList.OrderBy(t => random.Next()).Skip(DateTime.UtcNow.DayOfYear * 15 % thingsList.Count).Take(15).ToList() ?? new();
-        return target;
+
+        return target.Select(t => (t, 250 - (int)Math.Sqrt(random.Next(1, 65)) * 25)).ToDictionary(target => target.t, target => target.Item2);
     }
 
     public async Task<List<CollectableObject>> GetDailyObjects(Guid userId)
     {
         var things = await GetDailyLabels(userId);
-        var objects = await objectTable.Where(o => o.Locale == "en" && things.Contains(o.Name)).ExecuteAsync();
+        Console.WriteLine($"Daily objects: {string.Join(", ", things.Select(t => $"{t.Key} ({t.Value})"))}");
+        var labels = things.Keys;
+        var objects = (await objectTable.Where(o => o.Locale == "en" && labels.Contains(o.Name)).ExecuteAsync()).ToList();
+        foreach (var obj in objects)
+        {
+            obj.Value = things[obj.Name];
+        }
         return objects.ToList();
     }
 
