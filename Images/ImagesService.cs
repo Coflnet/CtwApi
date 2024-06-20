@@ -141,7 +141,7 @@ public class ImagesService
             if (obj.Value > 10)
                 await objectService.DecreaseValueTo("en", label, obj.Value -= 10);
         }
-        logger.LogInformation("user {userId} uploaded image {route} got rewarded with {rewards}", userId, route, JsonConvert.SerializeObject(rewards));
+        logger.LogInformation("user {userId} uploaded image {route} got rewarded with {rewards} {obj} {existing}", userId, route, JsonConvert.SerializeObject(rewards), JsonConvert.SerializeObject(obj), JsonConvert.SerializeObject(existing));
         await Task.WhenAll(tasks);
         return new()
         {
