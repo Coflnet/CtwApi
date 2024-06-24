@@ -21,6 +21,7 @@ public class ImagesService
     private readonly SkipService skipService;
     private readonly EventBusService eventBus;
     private readonly MultiplierService multiplierService;
+    private readonly WordService wordService;
 
     public ImagesService(ILogger<ImagesService> logger,
                          IAmazonS3 s3Client,
@@ -31,7 +32,8 @@ public class ImagesService
                          LeaderboardService leaderboardService,
                          EventBusService eventBus,
                          SkipService skipService,
-                         MultiplierService multiplierService)
+                         MultiplierService multiplierService,
+                         WordService wordService)
     {
         this.logger = logger;
         this.s3Client = s3Client;
@@ -54,6 +56,7 @@ public class ImagesService
         this.eventBus = eventBus;
         this.skipService = skipService;
         this.multiplierService = multiplierService;
+        this.wordService = wordService;
     }
 
     public async Task<UploadImageResponse> UploadFile(string label, Guid userId, IFormFile file)
@@ -93,54 +96,63 @@ public class ImagesService
         var rewards = new UploadRewards();
         tasks.Add(statsService.IncreaseStat(userId, "images_uploaded"));
         var existing = await existingCollection;
-        if (obj != null && existing?.Day != today) // don't reward for the same object twice a day
+        //if (obj != null && existing?.Day != today) // don't reward for the same object twice a day
+
+        float value = obj?.Value ?? 0;
+        rewards.ImageBonus = obj?.Value ?? 0;
+        if (await currentTask == label)
         {
-            float value = obj.Value;
-            rewards.ImageBonus = obj.Value;
-            if (await currentTask == label)
+            value *= 2;
+            rewards.IsCurrent = true;
+            tasks.Add(statsService.IncreaseStat(userId, "current_offset")); // tick current forward
+        }
+        else
+        {
+            tasks.Add(skipService.Collected(userId, label));
+        }
+        var multiplier = await multiplierService.GetMultipliers();
+        var matchingMultiplier = multiplier.FirstOrDefault(m => m.Category == obj.Category);
+        (var dailyReward, var dailyQuestReward) = await dailyRewardTask;
+        value += dailyQuestReward;
+        rewards.DailyQuestReward = dailyQuestReward;
+        if (matchingMultiplier != null)
+        {
+            value *= matchingMultiplier.Multiplier;
+            rewards.Multiplier = matchingMultiplier.Multiplier;
+        }
+        value += dailyReward; // multiplier doesn't apply to daily reward
+        if (obj == null)
+        {
+            if (await wordService.IsCollectableWord("en", label))
             {
-                value *= 2;
-                rewards.IsCurrent = true;
-                tasks.Add(statsService.IncreaseStat(userId, "current_offset")); // tick current forward
+                value += 200;
             }
             else
-            {
-                tasks.Add(skipService.Collected(userId, label));
-            }
-            var multiplier = await multiplierService.GetMultipliers();
-            var matchingMultiplier = multiplier.FirstOrDefault(m => m.Category == obj.Category);
-            (var dailyReward, var dailyQuestReward) = await dailyRewardTask;
-            value += dailyQuestReward;
-            rewards.DailyQuestReward = dailyQuestReward;
-            if (matchingMultiplier != null)
-            {
-                value *= matchingMultiplier.Multiplier;
-                rewards.Multiplier = matchingMultiplier.Multiplier;
-            }
-            value += dailyReward; // multiplier doesn't apply to daily reward
-            rewards.DailyItemReward = dailyReward;
-            var roundedValue = RounUpTo5(value);
-            newFile.Metadata = new Dictionary<string, string>()
+                value += 5;
+        }
+        rewards.DailyItemReward = dailyReward;
+        var roundedValue = RounUpTo5(value);
+        newFile.Metadata = new Dictionary<string, string>()
             {
                 { "rewarded", roundedValue.ToString() }
             };
-            rewards.Total = roundedValue;
-            tasks.Add(imageTable.Where(i => i.ObjectLabel == newFile.ObjectLabel && i.UserId == newFile.UserId && i.Day == newFile.Day)
-                    .Select(i => new CapturedImage() { Metadata = newFile.Metadata }).Update().ExecuteAsync());
-            tasks.Add(UpdateExpScore(userId, roundedValue));
-            eventBus.OnImageUploaded(new ImageUploadEvent()
-            {
-                UserId = userId,
-                Exp = roundedValue,
-                ImageUrl = route,
-                label = label,
-                IsUnique = existing == null,
-                ImageReward = obj.Value,
-                IsCurrent = rewards.IsCurrent
-            });
-            if (obj.Value > 10)
-                await objectService.DecreaseValueTo("en", label, obj.Value -= 10);
-        }
+        rewards.Total = roundedValue;
+        tasks.Add(imageTable.Where(i => i.ObjectLabel == newFile.ObjectLabel && i.UserId == newFile.UserId && i.Day == newFile.Day)
+                .Select(i => new CapturedImage() { Metadata = newFile.Metadata }).Update().ExecuteAsync());
+        tasks.Add(UpdateExpScore(userId, roundedValue));
+        eventBus.OnImageUploaded(new ImageUploadEvent()
+        {
+            UserId = userId,
+            Exp = roundedValue,
+            ImageUrl = route,
+            label = label,
+            IsUnique = existing == null,
+            ImageReward = obj.Value,
+            IsCurrent = rewards.IsCurrent
+        });
+        if (obj?.Value > 10)
+            await objectService.DecreaseValueTo("en", label, obj.Value -= 10);
+
         logger.LogInformation("user {userId} uploaded image {route} got rewarded with {rewards} {obj} {existing}", userId, route, JsonConvert.SerializeObject(rewards), JsonConvert.SerializeObject(obj), JsonConvert.SerializeObject(existing));
         await Task.WhenAll(tasks);
         return new()

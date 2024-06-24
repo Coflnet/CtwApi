@@ -4,6 +4,7 @@ using Amazon.S3;
 using Coflnet.Auth;
 using Coflnet.Core;
 using Microsoft.OpenApi.Models;
+using OpenAI.Extensions;
 using Swashbuckle.AspNetCore.SwaggerGen;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -65,6 +66,9 @@ builder.Services.AddHostedService<DeletorService>();
 builder.Services.AddSingleton<EventBusService>();
 builder.Services.AddSingleton<MultiplierService>();
 builder.Services.AddSingleton<ChallengeService>();
+builder.Services.AddOpenAIService(settings => { settings.ApiKey = builder.Configuration["OpenAiApiKey"]; });
+builder.Services.AddSingleton<AIValidationService>();
+builder.Services.AddSingleton<WordService>();
 builder.Services.AddSingleton<Coflnet.Leaderboard.Client.Api.IScoresApi>(sb =>
 {
     return new Coflnet.Leaderboard.Client.Api.ScoresApi(builder.Configuration["LEADERBOARD_BASE_URL"] ?? throw new ArgumentNullException("LEADERBOARD_BASE_URL"));

@@ -11,6 +11,7 @@
 
   <ItemGroup>
     <PackageReference Include="AWSSDK.S3" Version="3.7.307.28" />
+    <PackageReference Include="Betalgo.OpenAI" Version="8.5.1" />
     <PackageReference Include="Coflnet.Core" Version="0.2.0" />
     <PackageReference Include="Coflnet.Leaderboard.Client" Version="0.3.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.4" />
