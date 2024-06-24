@@ -147,7 +147,7 @@ public class ImagesService
             ImageUrl = route,
             label = label,
             IsUnique = existing == null,
-            ImageReward = obj.Value,
+            ImageReward = rewards.ImageBonus,
             IsCurrent = rewards.IsCurrent
         });
         if (obj?.Value > 10)
