@@ -140,7 +140,7 @@ public class ImagesService
         tasks.Add(imageTable.Where(i => i.ObjectLabel == newFile.ObjectLabel && i.UserId == newFile.UserId && i.Day == newFile.Day)
                 .Select(i => new CapturedImage() { Metadata = newFile.Metadata }).Update().ExecuteAsync());
         tasks.Add(UpdateExpScore(userId, roundedValue));
-        if(existing == null)
+        if (existing == null)
             tasks.Add(statsService.IncreaseStat(userId, "unique_images_uploaded"));
         eventBus.OnImageUploaded(new ImageUploadEvent()
         {
@@ -165,7 +165,7 @@ public class ImagesService
 
         static int RounUpTo5(float value)
         {
-            return (((int)value) / 5 + 1) * 5;
+            return ((int)(value + 0.1)) / 5 * 5;
         }
     }
 
