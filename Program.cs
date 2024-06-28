@@ -63,6 +63,7 @@ builder.Services.AddSingleton<StatsService>();
 builder.Services.AddSingleton<LeaderboardService>();
 builder.Services.AddSingleton<SkipService>();
 builder.Services.AddHostedService<DeletorService>();
+builder.Services.AddHostedService<CompletionWorker>();
 builder.Services.AddSingleton<EventBusService>();
 builder.Services.AddSingleton<MultiplierService>();
 builder.Services.AddSingleton<ChallengeService>();

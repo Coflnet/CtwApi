@@ -7,8 +7,8 @@ public class StatsService
 {
     private readonly Table<Stat> statsService;
     private readonly Table<TimedStat> timedStatTable;
-
-    public StatsService(ISession session)
+    private readonly ILogger<StatsService> logger;
+    public StatsService(ISession session, ILogger<StatsService> logger)
     {
         var mapping = new MappingConfiguration()
             .Define(new Map<Stat>()
@@ -28,10 +28,12 @@ public class StatsService
         );
         timedStatTable = new Table<TimedStat>(session, timedMapping, "timed_stats");
         timedStatTable.CreateIfNotExists();
+        this.logger = logger;
     }
 
     public async Task IncreaseStat(Guid userId, string statName, long value = 1)
     {
+        logger.LogInformation($"Increasing {statName} for {userId} by {value}");
         await statsService.Where(s => s.UserId == userId && s.StatName == statName)
             .Select(s => new Stat() { Value = value })
             .Update().ExecuteAsync();
@@ -81,26 +83,5 @@ public class StatsService
     internal async Task AddExp(Guid userId, int reward)
     {
         await IncreaseStat(userId, "exp", reward);
-    }
-}
-
-public class DeletorService : BackgroundService
-{
-    private readonly IServiceProvider services;
-
-    public DeletorService(IServiceProvider services)
-    {
-        this.services = services;
-    }
-
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-    {
-        while (!stoppingToken.IsCancellationRequested)
-        {
-            using var scope = services.CreateScope();
-            var statsService = scope.ServiceProvider.GetRequiredService<StatsService>();
-            await statsService.DeleteOldStats();
-            await Task.Delay(TimeSpan.FromHours(2), stoppingToken);
-        }
     }
 }

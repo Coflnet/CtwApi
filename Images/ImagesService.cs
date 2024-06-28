@@ -140,6 +140,8 @@ public class ImagesService
         tasks.Add(imageTable.Where(i => i.ObjectLabel == newFile.ObjectLabel && i.UserId == newFile.UserId && i.Day == newFile.Day)
                 .Select(i => new CapturedImage() { Metadata = newFile.Metadata }).Update().ExecuteAsync());
         tasks.Add(UpdateExpScore(userId, roundedValue));
+        if(existing == null)
+            tasks.Add(statsService.IncreaseStat(userId, "unique_images_uploaded"));
         eventBus.OnImageUploaded(new ImageUploadEvent()
         {
             UserId = userId,
@@ -191,12 +193,12 @@ public class ImagesService
         await dailyStatTask;
         await weeklyExpTask;
         var expStat = await statsService.GetStat(userId, "exp");
-        await leaderboardService.SetScore("exp_overall", userId, expStat);
+        var boardNames = new BoardNames();
+        await leaderboardService.SetScore(boardNames.Exp, userId, expStat);
         var dailyExpStat = await statsService.GetExpireStat(DateTimeOffset.UtcNow, userId, "daily_exp");
-        var formatted = DateTime.UtcNow.ToString("yyyyMMdd");
-        await leaderboardService.SetScore("exp_daily_" + formatted, userId, dailyExpStat);
+        await leaderboardService.SetScore(boardNames.DailyExp, userId, dailyExpStat);
         var weeklyExpStat = await statsService.GetExpireStat(lastDayOfWeek, userId, "weekly_exp");
-        await leaderboardService.SetScore("exp_weekly_" + lastDayOfWeek.ToString("yyyyMMdd"), userId, weeklyExpStat);
+        await leaderboardService.SetScore(boardNames.WeeklyExp, userId, weeklyExpStat);
     }
 
     public async Task<CapturedImage> AddDescription(Guid id, Guid userId, string description)
