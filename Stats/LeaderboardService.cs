@@ -50,7 +50,14 @@ public class LeaderboardService
 
     private string GetPrfixed(string leaderboardId)
     {
-        return prefix + leaderboardId;
+        var boardNames = new BoardNames();
+        var converted = leaderboardId switch {
+            "daily" => boardNames.DailyExp,
+            "weekly" => boardNames.WeeklyExp,
+            "overall" => boardNames.Exp,
+            _ => leaderboardId
+        };
+        return prefix + converted;
     }
 
     private async Task<IEnumerable<BoardEntry>> FormatWithProfile(List<BoardScore> users)
