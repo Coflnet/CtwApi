@@ -62,6 +62,7 @@ builder.Services.AddSingleton<ObjectService>();
 builder.Services.AddSingleton<StatsService>();
 builder.Services.AddSingleton<LeaderboardService>();
 builder.Services.AddSingleton<SkipService>();
+builder.Services.AddSingleton<StreakService>();
 builder.Services.AddHostedService<DeletorService>();
 builder.Services.AddHostedService<CompletionWorker>();
 builder.Services.AddSingleton<EventBusService>();
@@ -87,6 +88,8 @@ builder.Services.AddSingleton<IAmazonS3>(sb =>
             awsCofig
             );
 });
+// warm load StreakService
+builder.Services.AddHostedService<WarmUpWorker>();
 
 var app = builder.Build();
 
