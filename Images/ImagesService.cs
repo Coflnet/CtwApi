@@ -113,6 +113,14 @@ public class ImagesService
         var multiplier = await multiplierService.GetMultipliers();
         var matchingMultiplier = multiplier.FirstOrDefault(m => m.Category == obj?.Category);
         (var dailyReward, var dailyQuestReward) = await dailyRewardTask;
+
+        if(existing != null && dailyReward == 0)
+            return new()
+            {
+                Image = newFile,
+                Rewards = rewards
+            };
+        
         value += dailyQuestReward;
         rewards.DailyQuestReward = dailyQuestReward;
         if (matchingMultiplier != null)
