@@ -1,5 +1,4 @@
 using Cassandra.Data.Linq;
-using Coflnet.Auth;
 using Coflnet.Core;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -58,12 +57,9 @@ public class LeaderboardController : ControllerBase
         return await leaderboardService.GetRankOf(leaderboardId, GetUserId());
     }
 
-
-}
-
-    public class BoardNames
+    [HttpGet("me/ranks")]
+    public async Task<RankSummary> GetRanks()
     {
-        public string Exp { get; set; } = "exp_overall";
-        public string WeeklyExp { get; set; } = "exp_weekly_" + DateTime.Now.RoundDown(TimeSpan.FromDays(7)).AddDays(7).ToString("yyyyMMdd");
-        public string DailyExp { get; set; } = "exp_daily_" + DateTime.Now.ToString("yyyyMMdd");
+        return await leaderboardService.GetRanks(GetUserId());
     }
+}

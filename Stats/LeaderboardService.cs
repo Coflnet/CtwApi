@@ -97,4 +97,18 @@ public class LeaderboardService
     {
         return await scoresApi.ScoresLeaderboardSlugUserUserIdRankGetAsync(GetPrfixed(leaderboardId), userId.ToString());
     }
+
+    internal async Task<RankSummary> GetRanks(Guid guid)
+    {
+        var names = new BoardNames();
+        var dailyRankTask = GetRankOf(names.DailyExp, guid);
+        var weeklyRankTask = GetRankOf(names.WeeklyExp, guid);
+        var overallRankTask = GetRankOf(names.Exp, guid);
+        return new RankSummary()
+        {
+            DailyRank = await dailyRankTask,
+            WeeklyRank = await weeklyRankTask,
+            OverallRank = await overallRankTask
+        };
+    }
 }
