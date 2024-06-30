@@ -22,6 +22,7 @@ public class ImagesService
     private readonly EventBusService eventBus;
     private readonly MultiplierService multiplierService;
     private readonly WordService wordService;
+    private readonly StreakService streakService;
 
     public ImagesService(ILogger<ImagesService> logger,
                          IAmazonS3 s3Client,
@@ -33,7 +34,8 @@ public class ImagesService
                          EventBusService eventBus,
                          SkipService skipService,
                          MultiplierService multiplierService,
-                         WordService wordService)
+                         WordService wordService,
+                         StreakService streakService)
     {
         this.logger = logger;
         this.s3Client = s3Client;
@@ -57,6 +59,7 @@ public class ImagesService
         this.skipService = skipService;
         this.multiplierService = multiplierService;
         this.wordService = wordService;
+        this.streakService = streakService;
     }
 
     public async Task<UploadImageResponse> UploadFile(string label, Guid userId, IFormFile file)
@@ -69,6 +72,7 @@ public class ImagesService
         var objectTask = objectService.GetObject("en", label);
         var today = DateTime.UtcNow.DayOfYear + (DateTime.UtcNow.Year - 2020) * 365;
         var dailyRewardTask = GetRewardsFromDailyQuest(userId, today, label);
+        var isNotFirstOfDay = streakService.HasCollectedAnyToday(userId);
         var newFile = new CapturedImage()
         {
             Id = Guid.NewGuid(),
@@ -114,13 +118,13 @@ public class ImagesService
         var matchingMultiplier = multiplier.FirstOrDefault(m => m.Category == obj?.Category);
         (var dailyReward, var dailyQuestReward) = await dailyRewardTask;
 
-        if(existing != null && dailyReward == 0)
+        if (existing != null && dailyReward == 0)
             return new()
             {
                 Image = newFile,
                 Rewards = rewards
             };
-        
+
         value += dailyQuestReward;
         rewards.DailyQuestReward = dailyQuestReward;
         if (matchingMultiplier != null)
@@ -168,7 +172,11 @@ public class ImagesService
         return new()
         {
             Image = newFile,
-            Rewards = rewards
+            Rewards = rewards,
+            Stats = new()
+            {
+                ExtendedStreak = !await isNotFirstOfDay
+            }
         };
 
         static int RounUpTo5(float value)

@@ -47,13 +47,13 @@ public class StreakService
             {
                 UserId = e.UserId,
                 Date = DateTime.Today,
-                StreakLength = 0,
+                StreakLength = 1,
                 LabelExtendingStreak = e.label,
                 ImageUrl = e.ImageUrl
             };
             var streakStat = await statsService.GetStat(e.UserId, "collection_streak");
-            if (streakStat > 0)
-                await statsService.IncreaseStat(e.UserId, "collection_streak", streakStat);
+            if (streakStat > 1)
+                await statsService.IncreaseStat(e.UserId, "collection_streak", -streakStat + 1); // reset streak
         }
         else if (streak.Date == DateTime.Today)
         {
@@ -70,6 +70,12 @@ public class StreakService
         var insert = streakTable.Insert(streak);
         insert.SetTTL(86400 * 5);
         await insert.ExecuteAsync();
+    }
+
+    public async Task<bool> HasCollectedAnyToday(Guid userId)
+    {
+        var streak = streakTable.Where(s => s.UserId == userId && s.Date == DateTime.Today).Select(s => s.LabelExtendingStreak).FirstOrDefault().Execute();
+        return streak != null;
     }
 
     public class Streak
