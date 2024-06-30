@@ -25,17 +25,11 @@ public class SkipController : ControllerBase
     [HttpGet("available")]
     public async Task<SkipsAvailable> Available()
     {
-        var (used, collected) = await skipService.SkipStat(User.UserId());
-        return new SkipsAvailable() { Used = used, Total = 2 - used + collected };
+        return await skipService.Available(User.UserId());
     }
 
     public class SkipResponse
     {
         public bool Success { get; set; }
-    }
-    public class SkipsAvailable
-    {
-        public int Total { get; set; }
-        public int Used { get; set; }
     }
 }

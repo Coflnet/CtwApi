@@ -9,11 +9,13 @@ public class StatsController : ControllerBase
 {
     private readonly StatsService statsService;
     private readonly ILogger<StatsController> logger;
+    private readonly SkipService skipService;
 
-    public StatsController(StatsService statsService, ILogger<StatsController> logger)
+    public StatsController(StatsService statsService, ILogger<StatsController> logger, SkipService skipService)
     {
         this.statsService = statsService;
         this.logger = logger;
+        this.skipService = skipService;
     }
 
     [HttpGet("all")]
@@ -21,7 +23,12 @@ public class StatsController : ControllerBase
     public async Task<IEnumerable<Stat>> GetAllStats()
     {
         var userId = Guid.Parse(User.Claims.FirstOrDefault(c => c.Type == "sub")?.Value ?? throw new ApiException("missing_user_id", "User id not found in claims"));
-        return await statsService.GetStats(userId);
+        var skipTask = skipService.Available(userId);
+        var allNormal = await statsService.GetStats(userId);
+        var skipInfo = await skipTask;
+        return allNormal
+            .Append(new Stat(userId, "skips_available", skipInfo.Total))
+            .Append(new Stat(userId, "skips_used", skipInfo.Used));
     }
 
 

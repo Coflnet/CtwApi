@@ -60,6 +60,12 @@ public class SkipService
         return (used, collected);
     }
 
+    public async Task<SkipsAvailable> Available(Guid userId)
+    {
+        var (used, collected) = await SkipStat(userId);
+        return new SkipsAvailable() { Used = used, Total = 2 - used + collected };
+    }
+
     public async Task Collected(Guid userId, string label)
     {
         var day = DateTime.UtcNow.DayOfYear;
