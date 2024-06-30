@@ -15,6 +15,7 @@ public class ImagesService
     private readonly IAmazonS3 s3Client;
     private readonly string bucketName;
     private readonly Table<CapturedImage> imageTable;
+    private readonly Table<ImageStatCounter> imageStatCounterTable;
     private readonly StatsService statsService;
     private readonly ObjectService objectService;
     private readonly LeaderboardService leaderboardService;
@@ -52,6 +53,13 @@ public class ImagesService
         );
         imageTable = new Table<CapturedImage>(session, mapping, "named_images");
         imageTable.CreateIfNotExists();
+        var counterMapping = new MappingConfiguration()
+            .Define(new Map<ImageStatCounter>()
+            .PartitionKey(t => t.Label)
+            .Column(t => t.CollectCount, cm => cm.AsCounter())
+        );
+        imageStatCounterTable = new Table<ImageStatCounter>(session, counterMapping, "image_stat_counters");
+        imageStatCounterTable.CreateIfNotExists();
         this.statsService = statsService;
         this.objectService = objectService;
         this.leaderboardService = leaderboardService;
@@ -70,6 +78,7 @@ public class ImagesService
         var existingCollection = imageTable.Where(i => i.ObjectLabel == label && i.UserId == userId).FirstOrDefault().ExecuteAsync();
         var currentTask = objectService.CurrentLabeltoCollect(userId);
         var objectTask = objectService.GetObject("en", label);
+        var imageStatTask = imageStatCounterTable.Where(i => i.Label == label).FirstOrDefault().ExecuteAsync();
         var today = DateTime.UtcNow.DayOfYear + (DateTime.UtcNow.Year - 2020) * 365;
         var dailyRewardTask = GetRewardsFromDailyQuest(userId, today, label);
         var isNotFirstOfDay = streakService.HasCollectedAnyToday(userId);
@@ -169,13 +178,15 @@ public class ImagesService
 
         logger.LogInformation("user {userId} uploaded image {route} got rewarded with {rewards} {obj} {existing}", userId, route, JsonConvert.SerializeObject(rewards), JsonConvert.SerializeObject(obj), JsonConvert.SerializeObject(existing));
         await Task.WhenAll(tasks);
+        IncreaseImageUploadTimesCount(label);
         return new()
         {
             Image = newFile,
             Rewards = rewards,
             Stats = new()
             {
-                ExtendedStreak = !await isNotFirstOfDay
+                ExtendedStreak = !await isNotFirstOfDay,
+                CollectedTimes = (await imageStatTask).CollectCount
             }
         };
 
@@ -183,6 +194,13 @@ public class ImagesService
         {
             return ((int)(value + 0.1)) / 5 * 5;
         }
+    }
+
+    private void IncreaseImageUploadTimesCount(string label)
+    {
+        _ = Task.Run(() => imageStatCounterTable.Where(i => i.Label == label)
+                    .Select(i => new ImageStatCounter() { CollectCount = 1 })
+                    .Update().ExecuteAsync());
     }
 
     private async Task<(int itemReward, int querstReward)> GetRewardsFromDailyQuest(Guid userId, int today, string label)
@@ -280,4 +298,10 @@ public class ImagesService
 public class CapturedImageWithDownloadUrl : CapturedImage
 {
     public string DownloadUrl { get; set; }
+}
+
+public class ImageStatCounter
+{
+    public string Label { get; set; }
+    public long CollectCount { get; set; }
 }
