@@ -104,6 +104,12 @@ public class ObjectService
         return categories.Keys.Select(k => new Category() { Name = k });
     }
 
+    public async Task<List<string>> GetCategoriesForObject(string name)
+    {
+        var things = await GetThings();
+        return things.Where(t => t.Value.Contains(name)).Select(t => t.Key).ToList();
+    }
+
     private static async Task<Dictionary<string, string[]>?> GetThings()
     {
         var text = await File.ReadAllTextAsync("words.json");

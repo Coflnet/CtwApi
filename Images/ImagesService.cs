@@ -124,7 +124,8 @@ public class ImagesService
             tasks.Add(skipService.Collected(userId, label));
         }
         var multiplier = await multiplierService.GetMultipliers();
-        var matchingMultiplier = multiplier.FirstOrDefault(m => m.Category == obj?.Category);
+        var categoriesOfObject = await objectService.GetCategoriesForObject(label);
+        var matchingMultiplier = multiplier.FirstOrDefault(m => categoriesOfObject.Contains(m.Category));
         (var dailyReward, var dailyQuestReward) = await dailyRewardTask;
 
         if (existing != null && dailyReward == 0)
