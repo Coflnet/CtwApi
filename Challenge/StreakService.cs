@@ -72,6 +72,24 @@ public class StreakService
         await insert.ExecuteAsync();
     }
 
+    public async Task UpdateStatifStreakBroken()
+    {
+        var yesterday = DateTime.Today.AddDays(-1);
+
+        var streaks = streakTable.Execute();
+        foreach (var streak in streaks.GroupBy(s => s.UserId))
+        {
+            var all = streak.ToList();
+            if (all.Any(s => s.Date == yesterday))
+            {
+                continue;
+            }
+            var streakStat = await statsService.GetStat(streak.Key, "collection_streak");
+            if (streakStat > 1)
+                await statsService.IncreaseStat(streak.Key, "collection_streak", -streakStat + 1); // reset streak
+        }
+    }
+
     public async Task<bool> HasCollectedAnyToday(Guid userId)
     {
         var streak = streakTable.Where(s => s.UserId == userId && s.Date == DateTime.Today).Select(s => s.LabelExtendingStreak).FirstOrDefault().Execute();

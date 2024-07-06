@@ -6,13 +6,15 @@ public class CompletionWorker : BackgroundService
 {
     LeaderboardService leaderboardService;
     StatsService statsService;
+    StreakService streakService;
     ILogger<CompletionWorker> logger;
 
-    public CompletionWorker(LeaderboardService leaderboardService, StatsService statsService, ILogger<CompletionWorker> logger)
+    public CompletionWorker(LeaderboardService leaderboardService, StatsService statsService, ILogger<CompletionWorker> logger, StreakService streakService)
     {
         this.leaderboardService = leaderboardService;
         this.statsService = statsService;
         this.logger = logger;
+        this.streakService = streakService;
     }
 
 
@@ -42,21 +44,29 @@ public class CompletionWorker : BackgroundService
             var newBoardNames = new BoardNames();
             if (newBoardNames.WeeklyExp != boardNames.WeeklyExp)
             {
-                var top20 = await leaderboardService.GetLeaderboard(boardNames.WeeklyExp, 0, 10);
-                foreach (var entry in top10.Take(10))
-                {
-                    if (entry.User != null)
-                        await statsService.IncreaseStat(entry.User.UserId, "weekly_leaderboard_top10", 1);
-                    logger.LogInformation("Increased weekly_leaderboard_top10 for {userId}", entry.User?.UserId);
-                }
-                foreach (var item in top20)
-                {
-                    var bonus = Math.Max(3 - offset++, 0) * 2000 + 3000;
-                    if (item.User != null)
-                        await statsService.AddExp(item.User.UserId, bonus);
-                }
+                await UpdateWeeklyBoard(boardNames, top10, offset);
             }
 
+            await streakService.UpdateStatifStreakBroken();
         }
+    }
+
+    private async Task<int> UpdateWeeklyBoard(BoardNames boardNames, IEnumerable<LeaderboardService.BoardEntry> top10, int offset)
+    {
+        var top20 = await leaderboardService.GetLeaderboard(boardNames.WeeklyExp, 0, 10);
+        foreach (var entry in top10.Take(10))
+        {
+            if (entry.User != null)
+                await statsService.IncreaseStat(entry.User.UserId, "weekly_leaderboard_top10", 1);
+            logger.LogInformation("Increased weekly_leaderboard_top10 for {userId}", entry.User?.UserId);
+        }
+        foreach (var item in top20)
+        {
+            var bonus = Math.Max(3 - offset++, 0) * 2000 + 3000;
+            if (item.User != null)
+                await statsService.AddExp(item.User.UserId, bonus);
+        }
+
+        return offset;
     }
 }
