@@ -8,7 +8,8 @@ public class StatsService
     private readonly Table<Stat> statsService;
     private readonly Table<TimedStat> timedStatTable;
     private readonly ILogger<StatsService> logger;
-    public StatsService(ISession session, ILogger<StatsService> logger)
+    private readonly LeaderboardService leaderboardService;
+    public StatsService(ISession session, ILogger<StatsService> logger, LeaderboardService leaderboardService)
     {
         var mapping = new MappingConfiguration()
             .Define(new Map<Stat>()
@@ -29,6 +30,7 @@ public class StatsService
         timedStatTable = new Table<TimedStat>(session, timedMapping, "timed_stats");
         timedStatTable.CreateIfNotExists();
         this.logger = logger;
+        this.leaderboardService = leaderboardService;
     }
 
     public async Task IncreaseStat(Guid userId, string statName, long value = 1)
@@ -83,5 +85,7 @@ public class StatsService
     internal async Task AddExp(Guid userId, int reward)
     {
         await IncreaseStat(userId, "exp", reward);
+        var currentExp = await GetStat(userId, "exp");
+        await leaderboardService.SetScore(new BoardNames().Exp, userId, currentExp);
     }
 }

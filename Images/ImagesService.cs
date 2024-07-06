@@ -224,12 +224,10 @@ public class ImagesService
         var dailyStatTask = statsService.IncreaseExpireStat(DateTimeOffset.UtcNow, userId, "daily_exp", value);
         var lastDayOfWeek = DateTime.Now.RoundDown(TimeSpan.FromDays(7)).AddDays(7);
         var weeklyExpTask = statsService.IncreaseExpireStat(lastDayOfWeek, userId, "weekly_exp", value);
-        await statTask;
+        await statTask; // overall exp is implicitly done with adding exp in the stats service
         await dailyStatTask;
         await weeklyExpTask;
-        var expStat = await statsService.GetStat(userId, "exp");
         var boardNames = new BoardNames();
-        await leaderboardService.SetScore(boardNames.Exp, userId, expStat);
         var dailyExpStat = await statsService.GetExpireStat(DateTimeOffset.UtcNow, userId, "daily_exp");
         await leaderboardService.SetScore(boardNames.DailyExp, userId, dailyExpStat);
         var weeklyExpStat = await statsService.GetExpireStat(lastDayOfWeek, userId, "weekly_exp");
