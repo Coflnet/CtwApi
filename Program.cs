@@ -71,6 +71,14 @@ builder.Services.AddSingleton<ChallengeService>();
 builder.Services.AddOpenAIService(settings => { settings.ApiKey = builder.Configuration["OpenAiApiKey"]; });
 builder.Services.AddSingleton<AIValidationService>();
 builder.Services.AddSingleton<WordService>();
+builder.Services.AddSingleton(c =>
+{
+    // bind to Rewards Configuration
+    var config = new RewardsConfig();
+    builder.Configuration.GetSection("Rewards").Bind(config);
+    return config;
+});
+
 builder.Services.AddSingleton<Coflnet.Leaderboard.Client.Api.IScoresApi>(sb =>
 {
     return new Coflnet.Leaderboard.Client.Api.ScoresApi(builder.Configuration["LEADERBOARD_BASE_URL"] ?? throw new ArgumentNullException("LEADERBOARD_BASE_URL"));

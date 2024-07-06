@@ -1,4 +1,3 @@
-using Coflnet.Auth;
 using Microsoft.AspNetCore.Mvc;
 
 [ApiController]
@@ -35,10 +34,12 @@ public class ActiveMultiplier
 public class MultiplierService
 {
     private readonly ObjectService objectService;
+    private readonly RewardsConfig rewardsConfig;
 
-    public MultiplierService(ObjectService objectService)
+    public MultiplierService(ObjectService objectService, RewardsConfig rewardsConfig)
     {
         this.objectService = objectService;
+        this.rewardsConfig = rewardsConfig;
     }
 
     public async Task<ActiveMultiplier[]> GetMultipliers()
@@ -47,9 +48,9 @@ public class MultiplierService
         var today = DateTime.Now.Date;
         var random = new Random(today.DayOfYear * today.Year);
         var selected = categories.OrderBy(c => random.Next()).Take(3).Select(c => new ActiveMultiplier() { Category = c.Name }).ToArray();
-        selected[0].Multiplier = 1.25f;
-        selected[1].Multiplier = 2f;
-        selected[2].Multiplier = 4f;
+        selected[0].Multiplier = rewardsConfig.MultiplierRewards.Third;
+        selected[1].Multiplier = rewardsConfig.MultiplierRewards.Second;
+        selected[2].Multiplier = rewardsConfig.MultiplierRewards.Top;
         return selected;
     }
 }
