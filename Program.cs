@@ -101,6 +101,7 @@ app.UseSwagger(c =>
 {
     c.RoutePrefix = "api";
     c.SwaggerEndpoint("/api/openapi/v1/openapi.json", "Ctw");
+    c.EnablePersistAuthorization();
 });
 
 app.UseCoflnetCore();
@@ -109,6 +110,8 @@ app.Use(async (context, next) =>
 {
     Console.WriteLine($"Request: {context.Request.Path}");
     await next();
+    var responseCode = context.Response.StatusCode;
+    Console.WriteLine($"Response: {responseCode}");
 });
 app.UseAuthentication();
 app.UseAuthorization();

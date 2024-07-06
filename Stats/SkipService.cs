@@ -14,10 +14,10 @@ public class SkipService
             .Define(new Map<SkipEntry>()
             .PartitionKey(s => s.UserId)
             .ClusteringKey(s => s.Day)
+            .ClusteringKey(s => s.Label)
             .Column(s => s.Type)
-            .Column(s => s.Label)
         );
-        skipTable = new Table<SkipEntry>(session, mapping, "skip_entries");
+        skipTable = new Table<SkipEntry>(session, mapping, "skip_data");
         skipTable.CreateIfNotExists();
     }
 
@@ -69,6 +69,11 @@ public class SkipService
     public async Task Collected(Guid userId, string label)
     {
         var day = DateTime.UtcNow.DayOfYear;
+        var (used, collected) = await SkipStat(userId);
+        if(3 - used + collected >= 2)
+        {
+            return;
+        }
         var insert = skipTable.Insert(new SkipEntry() { UserId = userId, Day = day, Label = label, Type = "collect" });
         insert.SetTTL(86400);
         await insert.ExecuteAsync();
