@@ -3,8 +3,8 @@ WORKDIR /build/app
 COPY CtwApi.csproj CtwApi.csproj
 RUN dotnet restore
 COPY . .
-RUN dotnet test
-RUN dotnet publish -c release -o /app
+RUN dotnet test CtwApi.csproj
+RUN dotnet publish -c release -o /app CtwApi.csproj
 
 FROM mcr.microsoft.com/dotnet/aspnet:8.0
 WORKDIR /app
