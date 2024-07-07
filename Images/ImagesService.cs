@@ -75,6 +75,7 @@ public class ImagesService
 
     public async Task<UploadImageResponse> UploadFile(string label, Guid userId, IFormFile file, bool? licenseImage)
     {
+        label = label.Trim();
         var fileName = file.FileName.Trim();
         if (!new FileExtensionContentTypeProvider().TryGetContentType(Path.GetFileName(fileName), out var contentType))
             contentType = "application/octet-stream";
@@ -98,6 +99,8 @@ public class ImagesService
         var infoTask = imageTable.Insert(newFile).ExecuteAsync();
         var route = $"{label.Replace(" ", "_")}/{newFile.Id}";
         logger.LogInformation($"Putting {route} to S3 bucket {bucketName}");
+        if (privacy == null)
+            throw new ApiException("privacy", "You need to have your privacy settings configured to upload images");
         Task? uploadTask = null;
         if (privacy.NewService ?? false)
         {
