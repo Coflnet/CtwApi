@@ -211,6 +211,27 @@ public class ImagesService
         }
     }
 
+    public async Task DeleteImage(Guid userId, Guid id)
+    {
+        var stored = await imageTable.Where(i => i.Id == id).FirstOrDefault().ExecuteAsync();
+        if (stored == null)
+        {
+            throw new ApiException("not_found", "Image not found");
+        }
+        if (stored.UserId != userId)
+        {
+            throw new ApiException("forbidden", "You are not allowed to access this image");
+        }
+        await imageTable
+            .Where(i => i.ObjectLabel == stored.ObjectLabel && i.UserId == stored.UserId && i.Day == stored.Day)
+            .Delete().ExecuteAsync();
+        await s3Client.DeleteObjectAsync(new DeleteObjectRequest()
+        {
+            BucketName = bucketName,
+            Key = $"{stored.ObjectLabel.Replace(" ", "_")}/{id}"
+        });
+    }
+
     private void IncreaseImageUploadTimesCount(string label)
     {
         _ = Task.Run(() => imageStatCounterTable.Where(i => i.Label == label)

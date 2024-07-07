@@ -50,6 +50,14 @@ public class ImageController : ControllerBase
         return await imageService.AddDescription(id, userId, description);
     }
 
+    [HttpDelete("images/{id}")]
+    [Authorize]
+    public async Task<IActionResult> DeleteImage(Guid id)
+    {
+        await imageService.DeleteImage(this.GetUserId(), id);
+        return Ok();
+    }
+
     /// <summary>
     /// Get image metadata with download url
     /// </summary>
