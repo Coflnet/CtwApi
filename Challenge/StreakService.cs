@@ -51,9 +51,7 @@ public class StreakService
                 LabelExtendingStreak = e.label,
                 ImageUrl = e.ImageUrl
             };
-            var streakStat = await statsService.GetStat(e.UserId, "collection_streak");
-            if (streakStat > 1)
-                await statsService.IncreaseStat(e.UserId, "collection_streak", -streakStat + 1); // reset streak
+            await ResetStreak(e.UserId);
         }
         else if (streak.Date == DateTime.Today)
         {
@@ -84,10 +82,15 @@ public class StreakService
             {
                 continue;
             }
-            var streakStat = await statsService.GetStat(streak.Key, "collection_streak");
-            if (streakStat > 1)
-                await statsService.IncreaseStat(streak.Key, "collection_streak", -streakStat + 1); // reset streak
+            await ResetStreak(streak.Key);
         }
+    }
+
+    private async Task ResetStreak(Guid userid)
+    {
+        var streakStat = await statsService.GetStat(userid, "collection_streak");
+        if (streakStat > 1)
+            await statsService.IncreaseStat(userid, "collection_streak", -(streakStat - 1)); // reset streak
     }
 
     public async Task<bool> HasCollectedAnyToday(Guid userId)
