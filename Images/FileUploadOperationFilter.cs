@@ -27,6 +27,12 @@ public class FileUploadOperationFilter : IOperationFilter
                                             Type = "string",
                                             Format = "binary"
                                         }
+                                    },
+                                    {
+                                        "licenseImage", new OpenApiSchema
+                                        {
+                                            Type = "boolean"
+                                        }
                                     }
                                 }
                             }
@@ -34,5 +40,6 @@ public class FileUploadOperationFilter : IOperationFilter
                     }
                 }
         };
+
     }
 }

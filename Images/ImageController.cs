@@ -32,13 +32,14 @@ public class ImageController : ControllerBase
     [SwaggerOperation(OperationId = "ApiFileUpload.UploadFile", Summary = "Upload an image", Description = "Upload an image")]
     public async Task<UploadImageResponse> UploadImage(string label)
     {
-        var userId = Guid.Parse(User.Claims.FirstOrDefault(c => c.Type == "sub")?.Value ?? throw new ApiException("missing_user_id", "User id not found in claims"));
+        var userId = this.GetUserId();
         var file = Request.Form.Files.FirstOrDefault();
+        bool licenseImage = Request.Form.ContainsKey("licenseImage") && Request.Form["licenseImage"] == "true";
         if (file == null)
         {
             throw new ApiException("missing_upload", "No file uploaded, an image is required.");
         }
-        return await imageService.UploadFile(label, userId, file);
+        return await imageService.UploadFile(label, userId, file, licenseImage);
     }
 
     [HttpPost("images/{id}/description")]

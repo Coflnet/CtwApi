@@ -24,6 +24,7 @@ public class ImagesService
     private readonly MultiplierService multiplierService;
     private readonly WordService wordService;
     private readonly StreakService streakService;
+    private readonly PrivacyService privacyService;
 
     public ImagesService(ILogger<ImagesService> logger,
                          IAmazonS3 s3Client,
@@ -36,7 +37,8 @@ public class ImagesService
                          SkipService skipService,
                          MultiplierService multiplierService,
                          WordService wordService,
-                         StreakService streakService)
+                         StreakService streakService,
+                         PrivacyService privacyService)
     {
         this.logger = logger;
         this.s3Client = s3Client;
@@ -68,9 +70,10 @@ public class ImagesService
         this.multiplierService = multiplierService;
         this.wordService = wordService;
         this.streakService = streakService;
+        this.privacyService = privacyService;
     }
 
-    public async Task<UploadImageResponse> UploadFile(string label, Guid userId, IFormFile file)
+    public async Task<UploadImageResponse> UploadFile(string label, Guid userId, IFormFile file, bool? licenseImage)
     {
         var fileName = file.FileName.Trim();
         if (!new FileExtensionContentTypeProvider().TryGetContentType(Path.GetFileName(fileName), out var contentType))
@@ -82,6 +85,7 @@ public class ImagesService
         var today = DateTime.UtcNow.DayOfYear + (DateTime.UtcNow.Year - 2020) * 365;
         var dailyRewardTask = GetRewardsFromDailyQuest(userId, today, label);
         var isNotFirstOfDay = streakService.HasCollectedAnyToday(userId);
+        var privacy = await privacyService.GetConsent(userId);
         var newFile = new CapturedImage()
         {
             Id = Guid.NewGuid(),
@@ -91,19 +95,23 @@ public class ImagesService
             Size = file.Length,
             Day = today
         };
-        var info = await imageTable.Insert(newFile).ExecuteAsync();
+        var infoTask = imageTable.Insert(newFile).ExecuteAsync();
         var route = $"{label.Replace(" ", "_")}/{newFile.Id}";
         logger.LogInformation($"Putting {route} to S3 bucket {bucketName}");
-        using var stream = new MemoryStream();
-        await file.CopyToAsync(stream);
-        await s3Client.PutObjectAsync(new PutObjectRequest()
+        Task? uploadTask = null;
+        if (privacy.NewService ?? false)
         {
-            ContentType = contentType,
-            InputStream = stream,
-            BucketName = bucketName,
-            Key = route,
-            DisablePayloadSigning = true
-        });
+            using var stream = new MemoryStream();
+            await file.CopyToAsync(stream);
+            uploadTask = s3Client.PutObjectAsync(new PutObjectRequest()
+            {
+                ContentType = contentType,
+                InputStream = stream,
+                BucketName = bucketName,
+                Key = route,
+                DisablePayloadSigning = true
+            });
+        }
         List<Task> tasks = new List<Task>();
         var obj = await objectTask;
         var rewards = new UploadRewards();
@@ -125,6 +133,7 @@ public class ImagesService
         }
         var multiplier = await multiplierService.GetMultipliers();
         var categoriesOfObject = await objectService.GetCategoriesForObject(label);
+        await infoTask;
         var matchingMultiplier = multiplier.FirstOrDefault(m => categoriesOfObject.Contains(m.Category));
         (var dailyReward, var dailyQuestReward) = await dailyRewardTask;
 
@@ -156,7 +165,10 @@ public class ImagesService
         var roundedValue = RounUpTo5(value);
         newFile.Metadata = new Dictionary<string, string>()
             {
-                { "rewarded", roundedValue.ToString() }
+                { "rewarded", roundedValue.ToString() },
+                { "privacy.newService", (licenseImage ?? privacy.NewService ?? false).ToString()},
+                { "privacy.resell", (licenseImage ?? privacy.AllowResell ?? false).ToString()},
+                { "privacy.targeting", (privacy.TargetedAds ?? false).ToString()}
             };
         rewards.Total = roundedValue;
         tasks.Add(imageTable.Where(i => i.ObjectLabel == newFile.ObjectLabel && i.UserId == newFile.UserId && i.Day == newFile.Day)
@@ -178,6 +190,8 @@ public class ImagesService
             await objectService.DecreaseValueTo("en", label, obj.Value -= 10);
 
         logger.LogInformation("user {userId} uploaded image {route} got rewarded with {rewards} {obj} {existing}", userId, route, JsonConvert.SerializeObject(rewards), JsonConvert.SerializeObject(obj), JsonConvert.SerializeObject(existing));
+        if (uploadTask != null)
+            await uploadTask;
         await Task.WhenAll(tasks);
         IncreaseImageUploadTimesCount(label);
         return new()

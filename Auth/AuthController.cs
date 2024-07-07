@@ -1,3 +1,4 @@
+using Cassandra.Data.Linq;
 using Coflnet.Auth;
 using Microsoft.AspNetCore.Mvc;
 
