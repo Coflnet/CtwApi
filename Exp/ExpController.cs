@@ -1,4 +1,5 @@
 using Coflnet.Auth;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 [ApiController]
@@ -14,6 +15,7 @@ public class ExpController : ControllerBase
 
     [HttpGet]
     [Route("history")]
+    [Authorize]
     public async Task<IEnumerable<ExpChange>> GetExpChanges()
     {
         return await expService.GetExpChanges(this.GetUserId());
