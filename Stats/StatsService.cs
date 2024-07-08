@@ -82,7 +82,7 @@ public class StatsService
         await timedStatTable.Where(s => s.ExpiresOnDay == yesterday).Delete().ExecuteAsync();
     }
 
-    internal async Task AddExp(Guid userId, int reward)
+    internal async Task AddExp(Guid userId, long reward)
     {
         await IncreaseStat(userId, "exp", reward);
         var currentExp = await GetStat(userId, "exp");

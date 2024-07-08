@@ -8,8 +8,9 @@ public class ChallengeService
     private Table<Challenge> challengeTable;
     private readonly ILogger<ChallengeService> logger;
     private readonly StatsService statsService;
+    private readonly ExpService expService;
 
-    public ChallengeService(EventBusService eventBus, Cassandra.ISession session, ILogger<ChallengeService> logger, StatsService statsService)
+    public ChallengeService(EventBusService eventBus, Cassandra.ISession session, ILogger<ChallengeService> logger, StatsService statsService, ExpService expService)
     {
         this.eventBus = eventBus;
         eventBus.ImageUploaded += (sender, e) =>
@@ -37,6 +38,7 @@ public class ChallengeService
         challengeTable.CreateIfNotExists();
         this.logger = logger;
         this.statsService = statsService;
+        this.expService = expService;
     }
 
     private async Task HandOutReward(ImageUploadEvent e)
@@ -66,7 +68,7 @@ public class ChallengeService
 
             if (item.Progress >= item.Target && !item.RewardPaid)
             {
-                await statsService.AddExp(e.UserId, item.Reward);
+                await expService.AddExp(e.UserId, item.Reward, "challenge", $"Completed {item.Type} {item.Target} challenge", $"{item.Type}-{item.Target}");
                 item.RewardPaid = true;
             }
 

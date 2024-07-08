@@ -72,6 +72,7 @@ builder.Services.AddOpenAIService(settings => { settings.ApiKey = builder.Config
 builder.Services.AddSingleton<AIValidationService>();
 builder.Services.AddSingleton<WordService>();
 builder.Services.AddSingleton<PrivacyService>();
+builder.Services.AddSingleton<ExpService>();
 builder.Services.AddSingleton(c =>
 {
     // bind to Rewards Configuration

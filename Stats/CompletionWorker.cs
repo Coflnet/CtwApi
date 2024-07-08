@@ -9,14 +9,16 @@ public class CompletionWorker : BackgroundService
     StreakService streakService;
     ILogger<CompletionWorker> logger;
     RewardsConfig rewardsConfig;
+    ExpService expService;
 
-    public CompletionWorker(LeaderboardService leaderboardService, StatsService statsService, ILogger<CompletionWorker> logger, StreakService streakService, RewardsConfig rewardsConfig)
+    public CompletionWorker(LeaderboardService leaderboardService, StatsService statsService, ILogger<CompletionWorker> logger, StreakService streakService, RewardsConfig rewardsConfig, ExpService expService)
     {
         this.leaderboardService = leaderboardService;
         this.statsService = statsService;
         this.logger = logger;
         this.streakService = streakService;
         this.rewardsConfig = rewardsConfig;
+        this.expService = expService;
     }
 
 
@@ -41,7 +43,7 @@ public class CompletionWorker : BackgroundService
                 logger.LogInformation("Increased daily_leaderboard_top10 for {userId}", entry.User?.UserId);
                 var bonus = GetBonus(rewardsConfig.DailyLeaderboard, offset++);
                 if (entry.User != null)
-                    await statsService.AddExp(entry.User.UserId, bonus);
+                    await expService.AddExp(entry.User.UserId, bonus, "leaderboard", $"Placing #{offset} on the daily leaderboard", boardNames.DailyExp);
             }
             var newBoardNames = new BoardNames();
             if (newBoardNames.WeeklyExp != boardNames.WeeklyExp)
@@ -80,7 +82,7 @@ public class CompletionWorker : BackgroundService
         {
             var bonus = GetBonus(rewardsConfig.WeeklyLeaderboard, offset++);
             if (item.User != null)
-                await statsService.AddExp(item.User.UserId, bonus);
+                await expService.AddExp(item.User.UserId, bonus, "leaderboard", $"Placing #{offset} on the weekly leaderboard", boardNames.WeeklyExp);
         }
 
         return offset;

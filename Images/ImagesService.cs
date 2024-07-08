@@ -25,6 +25,7 @@ public class ImagesService
     private readonly WordService wordService;
     private readonly StreakService streakService;
     private readonly PrivacyService privacyService;
+    private readonly ExpService expService;
 
     public ImagesService(ILogger<ImagesService> logger,
                          IAmazonS3 s3Client,
@@ -176,7 +177,7 @@ public class ImagesService
         rewards.Total = roundedValue;
         tasks.Add(imageTable.Where(i => i.ObjectLabel == newFile.ObjectLabel && i.UserId == newFile.UserId && i.Day == newFile.Day)
                 .Select(i => new CapturedImage() { Metadata = newFile.Metadata }).Update().ExecuteAsync());
-        tasks.Add(UpdateExpScore(userId, roundedValue));
+        tasks.Add(UpdateExpScore(userId, roundedValue, label));
         if (existing == null)
             tasks.Add(statsService.IncreaseStat(userId, "unique_images_uploaded"));
         eventBus.OnImageUploaded(new ImageUploadEvent()
@@ -256,13 +257,12 @@ public class ImagesService
         return (itemReward, reward);
     }
 
-    private async Task UpdateExpScore(Guid userId, long value)
+    private async Task UpdateExpScore(Guid userId, long value, string label)
     {
-        var statTask = statsService.IncreaseStat(userId, "exp", value);
+        var expTask = expService.AddExp(userId, value, "image_upload", $"Uploading image of {label}", $"{label}-{DateTime.UtcNow.Date:yyyy-MM-dd}");
         var dailyStatTask = statsService.IncreaseExpireStat(DateTimeOffset.UtcNow, userId, "daily_exp", value);
         var lastDayOfWeek = DateTime.Now.RoundDown(TimeSpan.FromDays(7)).AddDays(7);
         var weeklyExpTask = statsService.IncreaseExpireStat(lastDayOfWeek, userId, "weekly_exp", value);
-        await statTask; // overall exp is implicitly done with adding exp in the stats service
         await dailyStatTask;
         await weeklyExpTask;
         var boardNames = new BoardNames();
