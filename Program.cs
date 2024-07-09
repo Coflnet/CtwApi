@@ -73,6 +73,7 @@ builder.Services.AddSingleton<AIValidationService>();
 builder.Services.AddSingleton<WordService>();
 builder.Services.AddSingleton<PrivacyService>();
 builder.Services.AddSingleton<ExpService>();
+builder.Services.AddAutoMapper(typeof(AutomapperProfile));
 builder.Services.AddSingleton(c =>
 {
     // bind to Rewards Configuration

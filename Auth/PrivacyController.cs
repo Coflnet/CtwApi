@@ -32,8 +32,7 @@ public class PrivacyController : ControllerBase
     [Authorize]
     public ConsentData SaveConsent(ConsentData consent)
     {
-        consent.UserId = this.GetUserId();
-        privacyService.SaveConsent(consent);
+        privacyService.SaveConsent(this.GetUserId(), consent);
         return consent;
     }
 }

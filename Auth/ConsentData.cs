@@ -2,8 +2,10 @@ namespace Coflnet.Auth;
 
 public class ConsentData
 {
-    public Guid UserId { get; set; }
-    public DateTime GivenAt { get; set; }
+    /// <summary>
+    /// When the consent was given, updated when storing
+    /// </summary>
+    public DateTimeOffset? GivenAt { get; set; }
     /// <summary>
     /// Accepted all targeting
     /// </summary>
