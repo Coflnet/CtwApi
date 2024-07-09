@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 [ApiController]
-[Route("exp")]
+[Route("api/exp")]
 public class ExpController : ControllerBase
 {
     private readonly ExpService expService;

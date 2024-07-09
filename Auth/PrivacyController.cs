@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Coflnet.Auth;
 
 [ApiController]
+[Route("api/privacy")]
 public class PrivacyController : ControllerBase
 {
     private readonly PrivacyService privacyService;
@@ -14,7 +15,7 @@ public class PrivacyController : ControllerBase
         this.privacyService = privacyService;
     }
 
-    [HttpGet("privacy")]
+    [HttpGet]
     [Authorize]
     public async Task<ActionResult<ConsentData>> GetConsent()
     {
@@ -27,7 +28,7 @@ public class PrivacyController : ControllerBase
         return consent;
     }
 
-    [HttpPost("privacy")]
+    [HttpPost]
     [Authorize]
     public ConsentData SaveConsent(ConsentData consent)
     {
