@@ -66,7 +66,7 @@ public class LeaderboardService
         var profiles = await profileTable.Where(p => ids.Contains(p.UserId)).ExecuteAsync();
         return users.Select(u => new BoardEntry()
         {
-            User = profiles.FirstOrDefault(p => p.UserId == Guid.Parse(u.UserId)) ?? new Profile() { Name = "Unknown", Avatar = null, UserId = Guid.Parse(u.UserId) },
+            User = profiles.FirstOrDefault(p => p.UserId == Guid.Parse(u.UserId)) ?? new Profile() { Name = "Anonymous", Avatar = null, UserId = Guid.Parse(u.UserId) },
             Score = u.Score
         });
     }
@@ -80,7 +80,7 @@ public class LeaderboardService
     public async Task<PublicProfile> GetProfile(Guid userId)
     {
         var internalProfile = await profileTable.Where(p => p.UserId == userId).FirstOrDefault().ExecuteAsync();
-        return new PublicProfile() { Name = internalProfile?.Name ?? "Unknown", Avatar = internalProfile?.Avatar ?? "" };
+        return new PublicProfile() { Name = internalProfile?.Name ?? "Anonymous", Avatar = internalProfile?.Avatar ?? "" };
     }
 
     public async Task SetProfile(Guid userId, string name, string avatar)
