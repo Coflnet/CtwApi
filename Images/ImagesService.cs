@@ -103,9 +103,9 @@ public class ImagesService
         if (privacy == null)
             throw new ApiException("privacy", "You need to have your privacy settings configured to upload images");
         Task? uploadTask = null;
+        using var stream = new MemoryStream(); // stream has to be disposed after upload done
         if (privacy.NewService ?? false)
         {
-            using var stream = new MemoryStream();
             await file.CopyToAsync(stream);
             uploadTask = s3Client.PutObjectAsync(new PutObjectRequest()
             {
