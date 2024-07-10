@@ -39,7 +39,8 @@ public class ImagesService
                          MultiplierService multiplierService,
                          WordService wordService,
                          StreakService streakService,
-                         PrivacyService privacyService)
+                         PrivacyService privacyService,
+                         ExpService expService)
     {
         this.logger = logger;
         this.s3Client = s3Client;
@@ -72,6 +73,7 @@ public class ImagesService
         this.wordService = wordService;
         this.streakService = streakService;
         this.privacyService = privacyService;
+        this.expService = expService;
     }
 
     public async Task<UploadImageResponse> UploadFile(string label, Guid userId, IFormFile file, bool? licenseImage)
@@ -265,6 +267,7 @@ public class ImagesService
         var weeklyExpTask = statsService.IncreaseExpireStat(lastDayOfWeek, userId, "weekly_exp", value);
         await dailyStatTask;
         await weeklyExpTask;
+        await expTask;
         var boardNames = new BoardNames();
         var dailyExpStat = await statsService.GetExpireStat(DateTimeOffset.UtcNow, userId, "daily_exp");
         await leaderboardService.SetScore(boardNames.DailyExp, userId, dailyExpStat);
