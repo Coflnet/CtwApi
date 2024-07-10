@@ -207,7 +207,7 @@ public class ImagesService
             Stats = new()
             {
                 ExtendedStreak = !await isNotFirstOfDay,
-                CollectedTimes = (await imageStatTask).CollectCount
+                CollectedTimes = (await imageStatTask)?.CollectCount ?? 0
             }
         };
 
