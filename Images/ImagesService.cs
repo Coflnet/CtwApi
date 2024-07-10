@@ -126,7 +126,7 @@ public class ImagesService
         //if (obj != null && existing?.Day != today) // don't reward for the same object twice a day
 
         float value = obj?.Value ?? 0;
-        rewards.ImageBonus = obj?.Value ?? 0;
+        rewards.ImageReward = obj?.Value ?? 0;
         if (await currentTask == label)
         {
             value *= 2;
@@ -189,7 +189,7 @@ public class ImagesService
             ImageUrl = route,
             label = label,
             IsUnique = existing == null,
-            ImageReward = rewards.ImageBonus,
+            ImageReward = rewards.ImageReward,
             IsCurrent = rewards.IsCurrent
         });
         if (obj?.Value > 10)
@@ -207,7 +207,7 @@ public class ImagesService
             Stats = new()
             {
                 ExtendedStreak = !await isNotFirstOfDay,
-                CollectedTimes = (await imageStatTask)?.CollectCount ?? 0
+                CollectedTimes = (await imageStatTask)?.CollectCount ?? 1
             }
         };
 
