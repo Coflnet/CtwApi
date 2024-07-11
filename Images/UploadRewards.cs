@@ -2,8 +2,12 @@ public class UploadRewards
 {
     public long Total { get; set; }
     public float Multiplier { get; set; }
-    public long ImageReward { get; set; }
+    public long BaseReward { get; set; }
     public bool IsCurrent { get; set; }
+    /// <summary>
+    /// Rewarded a skip for the upload
+    /// </summary>
+    public bool AddedSkip { get; set; }
     /// <summary>
     /// Has never been uploaded before
     /// </summary>

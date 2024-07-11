@@ -66,16 +66,23 @@ public class SkipService
         return new SkipsAvailable() { Used = used, Total = 2 - used + collected };
     }
 
-    public async Task Collected(Guid userId, string label)
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="userId"></param>
+    /// <param name="label"></param>
+    /// <returns>True if a skip was added</returns>
+    public async Task<bool> Collected(Guid userId, string label)
     {
         var day = DateTime.UtcNow.DayOfYear;
         var (used, collected) = await SkipStat(userId);
         if(3 - used + collected >= 2)
         {
-            return;
+            return false;
         }
         var insert = skipTable.Insert(new SkipEntry() { UserId = userId, Day = day, Label = label, Type = "collect" });
         insert.SetTTL(86400);
         await insert.ExecuteAsync();
+        return true;
     }
 }

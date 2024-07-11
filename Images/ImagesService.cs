@@ -126,7 +126,10 @@ public class ImagesService
         //if (obj != null && existing?.Day != today) // don't reward for the same object twice a day
 
         float value = obj?.Value ?? 0;
-        rewards.ImageReward = obj?.Value ?? 0;
+        var isCollectable = obj == null || await wordService.IsCollectableWord("en", label);
+        if (isCollectable && obj == null)
+            value = 500;
+        rewards.BaseReward = obj?.Value ?? 0;
         if (await currentTask == label)
         {
             value *= 2;
@@ -135,20 +138,31 @@ public class ImagesService
         }
         else
         {
-            tasks.Add(skipService.Collected(userId, label));
+            tasks.Add(Task.Run(async () =>
+            {
+                var addesSkip = await skipService.Collected(userId, label);
+                rewards.AddedSkip = addesSkip;
+            }));
         }
         var multiplier = await multiplierService.GetMultipliers();
         var categoriesOfObject = await objectService.GetCategoriesForObject(label);
         await infoTask;
         var matchingMultiplier = multiplier.FirstOrDefault(m => categoriesOfObject.Contains(m.Category));
         (var dailyReward, var dailyQuestReward) = await dailyRewardTask;
-
+        rewards.Unique = existing == null;
         if (existing != null && dailyReward == 0)
+        {
+            logger.LogInformation("user {userId} uploaded image {route} got rewarded with {rewards} {obj} {existing} early exit", userId, route, JsonConvert.SerializeObject(rewards), JsonConvert.SerializeObject(obj), JsonConvert.SerializeObject(existing));
             return new()
             {
                 Image = newFile,
-                Rewards = rewards
+                Rewards = rewards,
+                Stats = new()
+                {
+                    IsNoItem = !isCollectable,
+                }
             };
+        }
 
         value += dailyQuestReward;
         rewards.DailyQuestReward = dailyQuestReward;
@@ -158,15 +172,7 @@ public class ImagesService
             rewards.Multiplier = matchingMultiplier.Multiplier;
         }
         value += dailyReward; // multiplier doesn't apply to daily reward
-        if (obj == null)
-        {
-            if (await wordService.IsCollectableWord("en", label))
-            {
-                value += 200;
-            }
-            else
-                value += 5;
-        }
+
         rewards.DailyItemReward = dailyReward;
         var roundedValue = RounUpTo5(value);
         newFile.Metadata = new Dictionary<string, string>()
@@ -188,8 +194,8 @@ public class ImagesService
             Exp = roundedValue,
             ImageUrl = route,
             label = label,
-            IsUnique = existing == null,
-            ImageReward = rewards.ImageReward,
+            IsUnique = rewards.Unique,
+            ImageReward = rewards.BaseReward,
             IsCurrent = rewards.IsCurrent
         });
         if (obj?.Value > 10)
