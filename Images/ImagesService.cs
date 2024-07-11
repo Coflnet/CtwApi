@@ -89,6 +89,8 @@ public class ImagesService
         var today = DateTime.UtcNow.DayOfYear + (DateTime.UtcNow.Year - 2020) * 365;
         var dailyRewardTask = GetRewardsFromDailyQuest(userId, today, label);
         var isNotFirstOfDay = streakService.HasCollectedAnyToday(userId);
+        Task? uploadTask = null;
+        using var stream = new MemoryStream(); // stream has to be disposed after upload done
         var privacy = await privacyService.GetConsent(userId);
         var newFile = new CapturedImage()
         {
@@ -101,23 +103,7 @@ public class ImagesService
         };
         var infoTask = imageTable.Insert(newFile).ExecuteAsync();
         var route = $"{label.Replace(" ", "_")}/{newFile.Id}";
-        logger.LogInformation($"Putting {route} to S3 bucket {bucketName}");
-        if (privacy == null)
-            throw new ApiException("privacy", "You need to have your privacy settings configured to upload images");
-        Task? uploadTask = null;
-        using var stream = new MemoryStream(); // stream has to be disposed after upload done
-        if (privacy.NewService ?? false)
-        {
-            await file.CopyToAsync(stream);
-            uploadTask = s3Client.PutObjectAsync(new PutObjectRequest()
-            {
-                ContentType = contentType,
-                InputStream = stream,
-                BucketName = bucketName,
-                Key = route,
-                DisablePayloadSigning = true
-            });
-        }
+        uploadTask = await UploadFileToS3(file, contentType, uploadTask, stream, privacy, route);
         List<Task> tasks = new List<Task>();
         var obj = await objectTask;
         var rewards = new UploadRewards();
@@ -125,11 +111,12 @@ public class ImagesService
         var existing = await existingCollection;
         //if (obj != null && existing?.Day != today) // don't reward for the same object twice a day
 
-        float value = obj?.Value ?? 0;
         var isCollectable = obj == null || await wordService.IsCollectableWord("en", label);
-        if (isCollectable && obj == null)
-            value = 500;
-        rewards.BaseReward = obj?.Value ?? 0;
+        var collectedTimes = (await imageStatTask)?.CollectCount ?? 0;
+        float value = 0;
+        if (isCollectable)
+            value = Math.Max(Math.Max(500, obj?.Value ?? 500) - collectedTimes * 10, 10);
+        rewards.BaseReward = (long)value;
         if (await currentTask == label)
         {
             value *= 2;
@@ -198,8 +185,6 @@ public class ImagesService
             ImageReward = rewards.BaseReward,
             IsCurrent = rewards.IsCurrent
         });
-        if (obj?.Value > 10)
-            await objectService.DecreaseValueTo("en", label, obj.Value -= 10);
 
         logger.LogInformation("user {userId} uploaded image {route} got rewarded with {rewards} {obj} {existing}", userId, route, JsonConvert.SerializeObject(rewards), JsonConvert.SerializeObject(obj), JsonConvert.SerializeObject(existing));
         if (uploadTask != null)
@@ -221,6 +206,27 @@ public class ImagesService
         {
             return ((int)(value + 0.1)) / 5 * 5;
         }
+    }
+
+    private async Task<Task?> UploadFileToS3(IFormFile file, string? contentType, Task? uploadTask, MemoryStream stream, ConsentData privacy, string route)
+    {
+        logger.LogInformation($"Putting {route} to S3 bucket {bucketName}");
+        if (privacy == null)
+            throw new ApiException("privacy", "You need to have your privacy settings configured to upload images");
+        if (privacy.NewService ?? false)
+        {
+            await file.CopyToAsync(stream);
+            uploadTask = s3Client.PutObjectAsync(new PutObjectRequest()
+            {
+                ContentType = contentType,
+                InputStream = stream,
+                BucketName = bucketName,
+                Key = route,
+                DisablePayloadSigning = true
+            });
+        }
+
+        return uploadTask;
     }
 
     public async Task DeleteImage(Guid userId, Guid id)
@@ -273,12 +279,20 @@ public class ImagesService
         var weeklyExpTask = statsService.IncreaseExpireStat(lastDayOfWeek, userId, "weekly_exp", value);
         await dailyStatTask;
         await weeklyExpTask;
-        await expTask;
-        var boardNames = new BoardNames();
-        var dailyExpStat = await statsService.GetExpireStat(DateTimeOffset.UtcNow, userId, "daily_exp");
-        await leaderboardService.SetScore(boardNames.DailyExp, userId, dailyExpStat);
-        var weeklyExpStat = await statsService.GetExpireStat(lastDayOfWeek, userId, "weekly_exp");
-        await leaderboardService.SetScore(boardNames.WeeklyExp, userId, weeklyExpStat);
+        try
+        {
+
+            await expTask;
+            var boardNames = new BoardNames();
+            var dailyExpStat = await statsService.GetExpireStat(DateTimeOffset.UtcNow, userId, "daily_exp");
+            await leaderboardService.SetScore(boardNames.DailyExp, userId, dailyExpStat);
+            var weeklyExpStat = await statsService.GetExpireStat(lastDayOfWeek, userId, "weekly_exp");
+            await leaderboardService.SetScore(boardNames.WeeklyExp, userId, weeklyExpStat);
+        }
+        catch (Coflnet.Leaderboard.Client.Client.ApiException)
+        {
+            logger.LogError("Leaderboard service not available");
+        }
     }
 
     public async Task<CapturedImage> AddDescription(Guid id, Guid userId, string description)
