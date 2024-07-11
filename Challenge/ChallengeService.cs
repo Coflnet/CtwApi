@@ -3,8 +3,6 @@ using Cassandra.Mapping;
 
 public class ChallengeService
 {
-
-    private readonly EventBusService eventBus;
     private Table<Challenge> challengeTable;
     private readonly ILogger<ChallengeService> logger;
     private readonly StatsService statsService;
@@ -12,7 +10,6 @@ public class ChallengeService
 
     public ChallengeService(EventBusService eventBus, Cassandra.ISession session, ILogger<ChallengeService> logger, StatsService statsService, ExpService expService)
     {
-        this.eventBus = eventBus;
         eventBus.ImageUploaded += (sender, e) =>
         {
             Task.Run(async () =>
@@ -97,7 +94,7 @@ public class ChallengeService
                 Type = "count",
                 Progress = 0,
                 Target = 7,
-                Reward = 500
+                Reward = 1000
             }
         };
         foreach (var challenge in newChallenges)
