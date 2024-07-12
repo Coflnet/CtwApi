@@ -109,8 +109,6 @@ public class ImagesService
         var rewards = new UploadRewards();
         tasks.Add(statsService.IncreaseStat(userId, "images_uploaded"));
         var existing = await existingCollection;
-        //if (obj != null && existing?.Day != today) // don't reward for the same object twice a day
-
         var isCollectable = obj == null || await wordService.IsCollectableWord("en", label);
         var collectedTimes = (await imageStatTask)?.CollectCount ?? 0;
         float value = 0;
@@ -137,19 +135,7 @@ public class ImagesService
         var matchingMultiplier = multiplier.FirstOrDefault(m => categoriesOfObject.Contains(m.Category));
         (var dailyReward, var dailyQuestReward) = await dailyRewardTask;
         rewards.Unique = existing == null;
-        if (existing != null && dailyReward == 0)
-        {
-            logger.LogInformation("user {userId} uploaded image {route} got rewarded with {rewards} {obj} {existing} early exit", userId, route, JsonConvert.SerializeObject(rewards), JsonConvert.SerializeObject(obj), JsonConvert.SerializeObject(existing));
-            return new()
-            {
-                Image = newFile,
-                Rewards = rewards,
-                Stats = new()
-                {
-                    IsNoItem = !isCollectable,
-                }
-            };
-        }
+
 
         value += dailyQuestReward;
         rewards.DailyQuestReward = dailyQuestReward;
@@ -186,7 +172,8 @@ public class ImagesService
             IsCurrent = rewards.IsCurrent
         });
 
-        logger.LogInformation("user {userId} uploaded image {route} got rewarded with {rewards} {obj} {existing}", userId, route, JsonConvert.SerializeObject(rewards), JsonConvert.SerializeObject(obj), JsonConvert.SerializeObject(existing));
+        logger.LogInformation("user {userId} uploaded image {route} got rewarded with {rewards} {obj} {existing}", 
+            userId, route, JsonConvert.SerializeObject(rewards), JsonConvert.SerializeObject(obj), JsonConvert.SerializeObject(existing));
         if (uploadTask != null)
             await uploadTask;
         await Task.WhenAll(tasks);
@@ -198,7 +185,8 @@ public class ImagesService
             Stats = new()
             {
                 ExtendedStreak = !await isNotFirstOfDay,
-                CollectedTimes = (await imageStatTask)?.CollectCount ?? 1
+                CollectedTimes = (await imageStatTask)?.CollectCount ?? 1,
+                IsNoItem = !isCollectable,
             }
         };
 
@@ -273,14 +261,15 @@ public class ImagesService
 
     private async Task UpdateExpScore(Guid userId, long value, string label)
     {
+        await Task.Delay(200); // wait to allow db to briefe
         var expTask = expService.AddExp(userId, value, "image_upload", $"Uploading image of {label}", $"{label}-{DateTime.UtcNow.Date:yyyy-MM-dd}");
         var dailyStatTask = statsService.IncreaseExpireStat(DateTimeOffset.UtcNow, userId, "daily_exp", value);
         var lastDayOfWeek = DateTime.Now.RoundDown(TimeSpan.FromDays(7)).AddDays(7);
         var weeklyExpTask = statsService.IncreaseExpireStat(lastDayOfWeek, userId, "weekly_exp", value);
-        await dailyStatTask;
-        await weeklyExpTask;
         try
         {
+            await dailyStatTask;
+            await weeklyExpTask;
 
             await expTask;
             var boardNames = new BoardNames();
@@ -292,6 +281,10 @@ public class ImagesService
         catch (Coflnet.Leaderboard.Client.Client.ApiException)
         {
             logger.LogError("Leaderboard service not available");
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Failed to update exp score");
         }
     }
 
