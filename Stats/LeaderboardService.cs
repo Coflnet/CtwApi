@@ -9,8 +9,9 @@ public class LeaderboardService
     IScoresApi scoresApi;
     Table<Profile> profileTable;
     string prefix = "ctw_";
+    ILogger<LeaderboardService> logger;
 
-    public LeaderboardService(IScoresApi scoresApi, ISession session)
+    public LeaderboardService(IScoresApi scoresApi, ISession session, ILogger<LeaderboardService> logger)
     {
         this.scoresApi = scoresApi;
         var mapping = new MappingConfiguration()
@@ -21,6 +22,7 @@ public class LeaderboardService
         );
         profileTable = new Table<Profile>(session, mapping, "leaderboard_profiles");
         profileTable.CreateIfNotExists();
+        this.logger = logger;
     }
 
     public class Profile
@@ -86,6 +88,7 @@ public class LeaderboardService
     public async Task SetProfile(Guid userId, string name, string avatar)
     {
         await profileTable.Insert(new Profile() { UserId = userId, Name = name, Avatar = avatar }).ExecuteAsync();
+        logger.LogInformation($"Set profile for {userId} to {name} with avatar {avatar}");
     }
 
     public async Task SetScore(string leaderboardId, Guid userId, long score)
