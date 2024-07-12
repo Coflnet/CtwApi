@@ -66,6 +66,7 @@ public class LeaderboardService
     {
         var ids = users.Select(u => Guid.Parse(u.UserId)).ToHashSet();
         var profiles = await profileTable.Where(p => ids.Contains(p.UserId)).ExecuteAsync();
+        logger.LogInformation($"Found {profiles.Count()} profiles for {ids.Count()} users last one {profiles.LastOrDefault()?.Name}");
         return users.Select(u => new BoardEntry()
         {
             User = profiles.FirstOrDefault(p => p.UserId == Guid.Parse(u.UserId)) ?? new Profile() { Name = "Anonymous", Avatar = null, UserId = Guid.Parse(u.UserId) },
