@@ -109,7 +109,7 @@ public class ImagesService
         var rewards = new UploadRewards();
         tasks.Add(statsService.IncreaseStat(userId, "images_uploaded"));
         var existing = await existingCollection;
-        var isCollectable = obj == null || await wordService.IsCollectableWord("en", label);
+        var isCollectable = obj != null || await wordService.IsCollectableWord("en", label);
         var collectedTimes = (await imageStatTask)?.CollectCount ?? 0;
         float value = 0;
         if (isCollectable)
@@ -171,9 +171,15 @@ public class ImagesService
             ImageReward = rewards.BaseReward,
             IsCurrent = rewards.IsCurrent
         });
-
-        logger.LogInformation("user {userId} uploaded image {route} got rewarded with {rewards} {obj} {existing}", 
-            userId, route, JsonConvert.SerializeObject(rewards), JsonConvert.SerializeObject(obj), JsonConvert.SerializeObject(existing));
+        var uploadStats = new UploadStats()
+        {
+            ExtendedStreak = !await isNotFirstOfDay,
+            CollectedTimes = (await imageStatTask)?.CollectCount ?? 1,
+            IsNoItem = !isCollectable,
+        };
+        logger.LogInformation("user {userId} uploaded image {route} got rewarded with {rewards} {obj} {existing}, stats: {uploadStats}",
+            userId, route, JsonConvert.SerializeObject(rewards), 
+            JsonConvert.SerializeObject(obj), JsonConvert.SerializeObject(existing), JsonConvert.SerializeObject(uploadStats));
         if (uploadTask != null)
             await uploadTask;
         await Task.WhenAll(tasks);
@@ -182,12 +188,7 @@ public class ImagesService
         {
             Image = newFile,
             Rewards = rewards,
-            Stats = new()
-            {
-                ExtendedStreak = !await isNotFirstOfDay,
-                CollectedTimes = (await imageStatTask)?.CollectCount ?? 1,
-                IsNoItem = !isCollectable,
-            }
+            Stats = uploadStats
         };
 
         static int RounUpTo5(float value)
