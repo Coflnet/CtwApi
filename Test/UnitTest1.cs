@@ -40,7 +40,7 @@ public class UnitTest1
     private static Configuration GetConfigWithAuth()
     {
         var authClient = new AuthApi("http://localhost:5122");
-        var userToken = authClient.Login(new() { Secret = "stringstringstringstringstringstringn", Locale = "en" });
+        var userToken = authClient.Login(new() { Secret = "stringstringstringstringstringstring", Locale = "en" });
         var bearerToken = userToken.Token;
         var configuration = new Configuration
         {

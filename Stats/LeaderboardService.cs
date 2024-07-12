@@ -65,7 +65,7 @@ public class LeaderboardService
     private async Task<IEnumerable<BoardEntry>> FormatWithProfile(List<BoardScore> users)
     {
         var ids = users.Select(u => Guid.Parse(u.UserId)).ToHashSet();
-        var profiles = await profileTable.Where(p => ids.Contains(p.UserId)).ExecuteAsync();
+        var profiles = (await profileTable.Where(p => ids.Contains(p.UserId)).ExecuteAsync()).ToHashSet();
         logger.LogInformation($"Found {profiles.Count()} profiles for {ids.Count()} users last one {profiles.LastOrDefault()?.Name}");
         return users.Select(u => new BoardEntry()
         {
