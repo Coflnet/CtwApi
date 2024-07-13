@@ -28,10 +28,9 @@ public class ChallengeService
         var mapping = new MappingConfiguration()
             .Define(new Map<Challenge>()
             .PartitionKey(t => t.UserId, t => t.Date)
-            .ClusteringKey(t => t.RewardPaid)
             .ClusteringKey(t => t.Type)
         );
-        challengeTable = new Table<Challenge>(session, mapping, "challenges_2");
+        challengeTable = new Table<Challenge>(session, mapping, "challenges_3");
         challengeTable.CreateIfNotExists();
         this.logger = logger;
         this.statsService = statsService;
