@@ -148,7 +148,15 @@ public class ObjectService
     {
         var target = await CurrentLabeltoCollect(userId);
         var objects = await objectTable.Where(o => o.Locale == "en" && o.Name == target).ExecuteAsync();
-        return objects.FirstOrDefault();
+        var found = objects.FirstOrDefault();
+        if (found == null)
+        {
+            await objectTable.Insert(new CollectableObject() {
+                     UserId = default, Locale = "en", Name = target, Category = "none", Description = "", Value = 500 })
+                .ExecuteAsync();
+            return await objectTable.Where(o => o.Locale == "en" && o.Name == target).FirstOrDefault().ExecuteAsync();
+        }
+        return found;
     }
 
     public async Task<Dictionary<string, int>> GetDailyLabels(Guid userId)
