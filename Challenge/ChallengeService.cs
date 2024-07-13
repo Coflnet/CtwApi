@@ -41,9 +41,11 @@ public class ChallengeService
     private async Task HandOutReward(ImageUploadEvent e)
     {
         var dates = new DateTime[] { DateTime.Today, default };
-        var challenges = challengeTable.Where(c => c.UserId == e.UserId && dates.Contains(c.Date) && !c.RewardPaid).Execute();
+        var challenges = challengeTable.Where(c => c.UserId == e.UserId && dates.Contains(c.Date)).Execute();
         foreach (var item in challenges)
         {
+            if(item.RewardPaid)
+                continue;
             if (item.Type == "count")
             {
                 item.Progress++;
