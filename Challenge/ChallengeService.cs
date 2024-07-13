@@ -6,9 +6,9 @@ public class ChallengeService
     private Table<Challenge> challengeTable;
     private readonly ILogger<ChallengeService> logger;
     private readonly StatsService statsService;
-    private readonly ExpService expService;
+    private readonly EventStorageService expService;
 
-    public ChallengeService(EventBusService eventBus, Cassandra.ISession session, ILogger<ChallengeService> logger, StatsService statsService, ExpService expService)
+    public ChallengeService(EventBusService eventBus, Cassandra.ISession session, ILogger<ChallengeService> logger, StatsService statsService, EventStorageService expService)
     {
         eventBus.ImageUploaded += (sender, e) =>
         {

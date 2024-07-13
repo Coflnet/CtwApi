@@ -25,7 +25,7 @@ public class ImagesService
     private readonly WordService wordService;
     private readonly StreakService streakService;
     private readonly PrivacyService privacyService;
-    private readonly ExpService expService;
+    private readonly EventStorageService expService;
 
     public ImagesService(ILogger<ImagesService> logger,
                          IAmazonS3 s3Client,
@@ -40,7 +40,7 @@ public class ImagesService
                          WordService wordService,
                          StreakService streakService,
                          PrivacyService privacyService,
-                         ExpService expService)
+                         EventStorageService expService)
     {
         this.logger = logger;
         this.s3Client = s3Client;

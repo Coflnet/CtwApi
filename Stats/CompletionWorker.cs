@@ -9,9 +9,9 @@ public class CompletionWorker : BackgroundService
     StreakService streakService;
     ILogger<CompletionWorker> logger;
     RewardsConfig rewardsConfig;
-    ExpService expService;
+    EventStorageService expService;
 
-    public CompletionWorker(LeaderboardService leaderboardService, StatsService statsService, ILogger<CompletionWorker> logger, StreakService streakService, RewardsConfig rewardsConfig, ExpService expService)
+    public CompletionWorker(LeaderboardService leaderboardService, StatsService statsService, ILogger<CompletionWorker> logger, StreakService streakService, RewardsConfig rewardsConfig, EventStorageService expService)
     {
         this.leaderboardService = leaderboardService;
         this.statsService = statsService;

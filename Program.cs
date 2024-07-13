@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Text.Json.Serialization;
 using Amazon.Runtime;
 using Amazon.S3;
 using Coflnet.Auth;
@@ -54,7 +55,10 @@ builder.Services.AddSwaggerGen(c =>
                 c.IncludeXmlComments(xmlPath, true);
                 c.OperationFilter<FileUploadOperationFilter>();
             });
-builder.Services.AddControllers();
+builder.Services.AddControllers().AddJsonOptions(o =>
+{
+    o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+});
 builder.AddCoflAuthService();
 builder.Services.AddCoflnetCore();
 builder.Services.AddSingleton<ImagesService>();
@@ -72,7 +76,7 @@ builder.Services.AddOpenAIService(settings => { settings.ApiKey = builder.Config
 builder.Services.AddSingleton<AIValidationService>();
 builder.Services.AddSingleton<WordService>();
 builder.Services.AddSingleton<PrivacyService>();
-builder.Services.AddSingleton<ExpService>();
+builder.Services.AddSingleton<EventStorageService>();
 builder.Services.AddAutoMapper(typeof(AutomapperProfile));
 builder.Services.AddSingleton(c =>
 {

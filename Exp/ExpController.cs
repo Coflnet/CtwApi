@@ -3,12 +3,12 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 [ApiController]
-[Route("api/exp")]
-public class ExpController : ControllerBase
+[Route("api/events")]
+public class EventsController : ControllerBase
 {
-    private readonly ExpService expService;
+    private readonly EventStorageService expService;
 
-    public ExpController(ExpService expService)
+    public EventsController(EventStorageService expService)
     {
         this.expService = expService;
     }
@@ -16,8 +16,8 @@ public class ExpController : ControllerBase
     [HttpGet]
     [Route("history")]
     [Authorize]
-    public async Task<IEnumerable<ExpChange>> GetExpChanges()
+    public async Task<IEnumerable<ChangeEvent>> GetExpChanges(DateTime since = default)
     {
-        return await expService.GetExpChanges(this.GetUserId());
+        return await expService.GetChanges(this.GetUserId(), since);
     }
 }

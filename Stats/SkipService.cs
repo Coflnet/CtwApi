@@ -6,8 +6,10 @@ public class SkipService
 {
     public Table<SkipEntry> skipTable;
     private StatsService statsService;
+    private readonly ILogger<SkipService> logger;
+    private readonly EventStorageService eventStorageService;
 
-    public SkipService(ISession session, StatsService statsService)
+    public SkipService(ISession session, StatsService statsService, ILogger<SkipService> logger, EventStorageService eventStorageService)
     {
         this.statsService = statsService;
         var mapping = new MappingConfiguration()
@@ -19,6 +21,8 @@ public class SkipService
         );
         skipTable = new Table<SkipEntry>(session, mapping, "skip_data");
         skipTable.CreateIfNotExists();
+        this.logger = logger;
+        this.eventStorageService = eventStorageService;
     }
 
     public class SkipEntry
@@ -39,7 +43,7 @@ public class SkipService
     {
         var day = DateTime.UtcNow.DayOfYear;
         (int used, int collected) = await SkipStat(userId);
-        if (used - collected > 2)
+        if (used - collected >= 2)
         {
             return false;
         }
@@ -76,13 +80,14 @@ public class SkipService
     {
         var day = DateTime.UtcNow.DayOfYear;
         var (used, collected) = await SkipStat(userId);
-        if(3 - used + collected >= 2)
+        if (3 - used + collected >= 2)
         {
             return false;
         }
         var insert = skipTable.Insert(new SkipEntry() { UserId = userId, Day = day, Label = label, Type = "collect" });
         insert.SetTTL(86400);
         await insert.ExecuteAsync();
+        await eventStorageService.AddSkip(userId, "collect", $"Collected an imae of {label}", label);
         return true;
     }
 }
