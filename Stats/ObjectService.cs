@@ -120,6 +120,18 @@ public class ObjectService
     public async Task<string?> CurrentLabeltoCollect(Guid userId)
     {
         var stat = (int)await statsService.GetStat(userId, "current_offset");
+        if (stat < 20)
+        {
+            if (stat == 0)
+                return "door";
+            var items = new string[]{
+                "chair", "apple", "bed", "pillow", "folded blanket", "lamp",
+                "smartphone", "pencil", "key", "door", "water bottle", "water glass",
+                "book", "earbuds", "window", "toothbrush", "toothpaste", "shoes",
+                "jacket", "shirt", "pants", "flashlight", "fork", "spoon", "knife"
+                };
+            return items[stat];
+        }
         var things = await GetThings();
         Random random = UserRandom(userId);
         return things?.SelectMany(t => t.Value).OrderBy(t => random.Next()).Skip(stat).FirstOrDefault();
