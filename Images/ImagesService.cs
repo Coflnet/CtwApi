@@ -121,14 +121,11 @@ public class ImagesService
             rewards.IsCurrent = true;
             tasks.Add(statsService.IncreaseStat(userId, "current_offset")); // tick current forward
         }
-        else
+        tasks.Add(Task.Run(async () =>
         {
-            tasks.Add(Task.Run(async () =>
-            {
-                var addesSkip = await skipService.Collected(userId, label);
-                rewards.AddedSkip = addesSkip;
-            }));
-        }
+            var addesSkip = await skipService.Collected(userId, label);
+            rewards.AddedSkip = addesSkip;
+        }));
         var multiplier = await multiplierService.GetMultipliers();
         var categoriesOfObject = await objectService.GetCategoriesForObject(label);
         await infoTask;
@@ -178,7 +175,7 @@ public class ImagesService
             IsNoItem = !isCollectable,
         };
         logger.LogInformation("user {userId} uploaded image {route} got rewarded with {rewards} {obj} {existing}, stats: {uploadStats}",
-            userId, route, JsonConvert.SerializeObject(rewards), 
+            userId, route, JsonConvert.SerializeObject(rewards),
             JsonConvert.SerializeObject(obj), JsonConvert.SerializeObject(existing), JsonConvert.SerializeObject(uploadStats));
         if (uploadTask != null)
             await uploadTask;
