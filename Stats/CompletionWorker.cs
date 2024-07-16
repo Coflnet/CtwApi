@@ -10,8 +10,16 @@ public class CompletionWorker : BackgroundService
     ILogger<CompletionWorker> logger;
     RewardsConfig rewardsConfig;
     EventStorageService expService;
+    DeletionService deletionService;
 
-    public CompletionWorker(LeaderboardService leaderboardService, StatsService statsService, ILogger<CompletionWorker> logger, StreakService streakService, RewardsConfig rewardsConfig, EventStorageService expService)
+    public CompletionWorker(
+        LeaderboardService leaderboardService,
+        StatsService statsService,
+        ILogger<CompletionWorker> logger,
+        StreakService streakService,
+        RewardsConfig rewardsConfig,
+        EventStorageService expService,
+        DeletionService deletionService)
     {
         this.leaderboardService = leaderboardService;
         this.statsService = statsService;
@@ -19,6 +27,7 @@ public class CompletionWorker : BackgroundService
         this.streakService = streakService;
         this.rewardsConfig = rewardsConfig;
         this.expService = expService;
+        this.deletionService = deletionService;
     }
 
 
@@ -52,6 +61,7 @@ public class CompletionWorker : BackgroundService
             }
 
             await streakService.UpdateStatifStreakBroken();
+            await deletionService.RunDeletions();
         }
     }
 

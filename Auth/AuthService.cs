@@ -113,4 +113,13 @@ public class AuthService
         var jwt_token = new JwtSecurityTokenHandler().WriteToken(token);
         return jwt_token;
     }
+
+    internal async Task DeleteUser(Guid userId)
+    {
+        var userEntries = userDb.Where(u => u.Id == userId).Execute();
+        foreach (var user in userEntries)
+        {
+            userDb.Where(u => u.AuthProviderId == user.AuthProviderId).Delete().Execute();
+        }
+    }
 }

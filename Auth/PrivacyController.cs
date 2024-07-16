@@ -9,10 +9,12 @@ namespace Coflnet.Auth;
 public class PrivacyController : ControllerBase
 {
     private readonly PrivacyService privacyService;
+    private readonly DeletionService deletionService;
 
-    public PrivacyController(PrivacyService privacyService)
+    public PrivacyController(PrivacyService privacyService, DeletionService deletionService)
     {
         this.privacyService = privacyService;
+        this.deletionService = deletionService;
     }
 
     [HttpGet]
@@ -34,6 +36,19 @@ public class PrivacyController : ControllerBase
     {
         privacyService.SaveConsent(this.GetUserId(), consent);
         return consent;
+    }
+
+    [HttpDelete("/api/account")]
+    [Authorize]
+    public async Task<DateTimeOffset> DeleteAccount()
+    {
+        return await deletionService.RequestDeletion(this.GetUserId());
+    }
+    [HttpDelete("/api/account/deletion")]
+    [Authorize]
+    public async Task<DateTimeOffset?> GetDeletiontime()
+    {
+        return await deletionService.DeletingAt(this.GetUserId());
     }
 }
 

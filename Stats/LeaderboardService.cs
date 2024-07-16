@@ -122,4 +122,9 @@ public class LeaderboardService
             OverallRank = await overallRankTask
         };
     }
+
+    internal async Task DeleteProfile(Guid userId)
+    {
+        await profileTable.Where(p => p.UserId == userId).Delete().ExecuteAsync();
+    }
 }

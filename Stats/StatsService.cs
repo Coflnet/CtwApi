@@ -5,7 +5,7 @@ using ISession = Cassandra.ISession;
 
 public class StatsService
 {
-    private readonly Table<Stat> statsService;
+    private readonly Table<Stat> statsTable;
     private readonly Table<TimedStat> timedStatTable;
     private readonly ILogger<StatsService> logger;
     private readonly LeaderboardService leaderboardService;
@@ -17,8 +17,8 @@ public class StatsService
             .ClusteringKey(t => t.StatName)
             .Column(t => t.Value, cm => cm.AsCounter())
         );
-        statsService = new Table<Stat>(session, mapping, "stats");
-        statsService.CreateIfNotExists();
+        statsTable = new Table<Stat>(session, mapping, "stats");
+        statsTable.CreateIfNotExists();
 
         var timedMapping = new MappingConfiguration()
             .Define(new Map<TimedStat>()
@@ -36,14 +36,14 @@ public class StatsService
     public async Task IncreaseStat(Guid userId, string statName, long value = 1)
     {
         logger.LogInformation($"Increasing {statName} for {userId} by {value}");
-        await statsService.Where(s => s.UserId == userId && s.StatName == statName)
+        await statsTable.Where(s => s.UserId == userId && s.StatName == statName)
             .Select(s => new Stat() { Value = value })
             .Update().ExecuteAsync();
     }
 
     public async Task<long> GetStat(Guid userId, string statName)
     {
-        var stat = await statsService.Where(s => s.UserId == userId && s.StatName == statName)
+        var stat = await statsTable.Where(s => s.UserId == userId && s.StatName == statName)
             .Select(s => new { s.Value })
             .ExecuteAsync();
         return stat.FirstOrDefault()?.Value ?? 0;
@@ -73,7 +73,7 @@ public class StatsService
 
     public async Task<IEnumerable<Stat>> GetStats(Guid userId)
     {
-        return await statsService.Where(s => s.UserId == userId).ExecuteAsync();
+        return await statsTable.Where(s => s.UserId == userId).ExecuteAsync();
     }
 
     public async Task DeleteOldStats()
@@ -87,5 +87,10 @@ public class StatsService
         await IncreaseStat(userId, "exp", reward);
         var currentExp = await GetStat(userId, "exp");
         await leaderboardService.SetScore(new BoardNames().Exp, userId, currentExp);
+    }
+
+    internal async Task DeleteStats(Guid userId)
+    {
+        await statsTable.Where(s => s.UserId == userId).Delete().ExecuteAsync();
     }
 }

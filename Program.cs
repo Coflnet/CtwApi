@@ -76,6 +76,7 @@ builder.Services.AddOpenAIService(settings => { settings.ApiKey = builder.Config
 builder.Services.AddSingleton<AIValidationService>();
 builder.Services.AddSingleton<WordService>();
 builder.Services.AddSingleton<PrivacyService>();
+builder.Services.AddSingleton<DeletionService>();
 builder.Services.AddSingleton<EventStorageService>();
 builder.Services.AddAutoMapper(typeof(AutomapperProfile));
 builder.Services.AddSingleton(c =>
