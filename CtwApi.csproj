@@ -16,6 +16,7 @@
     <PackageReference Include="Betalgo.OpenAI" Version="8.5.1" />
     <PackageReference Include="Coflnet.Core" Version="0.2.0" />
     <PackageReference Include="Coflnet.Leaderboard.Client" Version="0.3.0" />
+    <PackageReference Include="Google.Apis.Auth" Version="1.68.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.6" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.6" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />

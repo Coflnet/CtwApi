@@ -39,11 +39,11 @@ public class AuthService
         return userDb.Where(u => u.AuthProviderId == authProviderId).Select(u => u.Id).Execute().FirstOrDefault();
     }
 
-    public Guid CreateUser(string authProviderId, string name, string? email, string? locale)
+    public Guid CreateUser(string authProviderId, string name, string? email, string? locale, Guid? userId = null)
     {
         var user = new User()
         {
-            Id = Guid.NewGuid(),
+            Id = userId ?? Guid.NewGuid(),
             Name = name,
             Email = email,
             AuthProviderId = authProviderId,
@@ -84,6 +84,7 @@ public class AuthService
         userDb.Insert(user).Execute();
         return CreateTokenFor(user.Id);
     }
+
 
     public string CreateTokenFor(Guid userId)
     {
