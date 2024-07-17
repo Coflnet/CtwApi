@@ -31,6 +31,20 @@ public class AuthController : Controller
         var token = authService.GetTokenAnonymous(request.Secret, ipBehindCloudflare, Request.Headers["User-Agent"], request.Locale ?? "en");
         return new TokenResponse { Token = token };
     }
+    /// <summary>
+    /// When you authorized based on an auth provider add the current device id to authorized secets
+    /// </summary>
+    /// <param name="request"></param>
+    /// <returns></returns>
+    [HttpPost("auth/deviceId")]
+    [ProducesResponseType(200)]
+    [Authorize]
+    public TokenResponse LoginDevice([FromBody] AnonymousLoginRequest request)
+    {
+        var userId = this.GetUserId();
+        var token = authService.GetTokenAnonymous(request.Secret, null, Request.Headers["User-Agent"], request.Locale ?? "en", userId);
+        return new TokenResponse { Token = token };
+    }
 
     /// <summary>
     /// Authenticates with google and returns a jwt token
@@ -81,6 +95,10 @@ public class AuthController : Controller
         var data = await GetSignedPayload(authCode);
         var currentUserId = this.GetUserId();
         var userId = authService.GetUserId(data.Subject);
+        if (userId == currentUserId)
+        {
+            return new TokenResponse() { Token = authService.CreateTokenFor(userId) };
+        }
         if (userId != default)
         {
             throw new ApiException("already_connected", "This google account is already connected to another user");

@@ -65,7 +65,7 @@ public class AuthService
         return userDb.Where(u => u.AuthProviderId == authProviderId).Execute().FirstOrDefault();
     }
 
-    public string GetTokenAnonymous(string secret, string? ip, string? userAgentOrDeviceInfo, string locale)
+    public string GetTokenAnonymous(string secret, string? ip, string? userAgentOrDeviceInfo, string locale, Guid? existing = null)
     {
         if (secret.Length < 32)
         {
@@ -76,7 +76,7 @@ public class AuthService
         if (user == null)
         {
             // TODO: rate limit
-            var userId = CreateUser(virtualid, "Anonymous", null, locale);
+            var userId = CreateUser(virtualid, "Anonymous", null, locale, existing);
             return CreateTokenFor(userId);
         }
         // update last seen at and return token
