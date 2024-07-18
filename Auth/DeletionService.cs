@@ -62,6 +62,11 @@ public class DeletionService
 
     }
 
+    internal async Task AbortDeletion(Guid guid)
+    {
+        await deletionDb.Where(d => d.UserId == guid).Delete().ExecuteAsync();
+    }
+
     public class InternalDeletionRequest
     {
         public Guid UserId { get; set; }

@@ -44,11 +44,17 @@ public class PrivacyController : ControllerBase
     {
         return await deletionService.RequestDeletion(this.GetUserId());
     }
-    [HttpDelete("/api/account/deletion")]
+    [HttpGet("/api/account/deletion")]
     [Authorize]
     public async Task<DateTimeOffset?> GetDeletiontime()
     {
         return await deletionService.DeletingAt(this.GetUserId());
+    }
+    [HttpPost("/api/account/deletion/abort")]
+    [Authorize]
+    public async Task AbortDeletion()
+    {
+        await deletionService.AbortDeletion(this.GetUserId());
     }
 }
 
