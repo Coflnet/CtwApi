@@ -166,7 +166,8 @@ public class ObjectService
         var thingsList = things?.SelectMany(t => t.Value).ToList() ?? new();
         var target = thingsList.OrderBy(t => random.Next()).Skip(DateTime.UtcNow.DayOfYear * 15 % thingsList.Count).Take(15).ToList() ?? new();
 
-        return target.Select(t => (t, 250 - (int)Math.Sqrt(random.Next(1, 65)) * 25)).ToDictionary(target => target.t, target => target.Item2);
+        return target.Select(t => (t, 250 - (int)Math.Sqrt(random.Next(1, 65)) * 25))
+            .GroupBy(t=>t.t).Select(t=>t.First()).ToDictionary(target => target.t, target => target.Item2);
     }
 
     public async Task<List<CollectableObject>> GetDailyObjects(Guid userId)
