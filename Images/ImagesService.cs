@@ -1,3 +1,4 @@
+using Amazon;
 using Amazon.S3;
 using Amazon.S3.Model;
 using Cassandra.Data.Linq;
@@ -103,7 +104,7 @@ public class ImagesService
         };
         var infoTask = imageTable.Insert(newFile).ExecuteAsync();
         var route = $"{label.Replace(" ", "_")}/{newFile.Id}";
-        uploadTask = await UploadFileToS3(file, contentType, uploadTask, stream, privacy, route);
+        uploadTask = await UploadFileToS3(file, contentType, uploadTask, stream, privacy, route, licenseImage);
         List<Task> tasks = new List<Task>();
         var obj = await objectTask;
         var rewards = new UploadRewards();
@@ -194,12 +195,12 @@ public class ImagesService
         }
     }
 
-    private async Task<Task?> UploadFileToS3(IFormFile file, string? contentType, Task? uploadTask, MemoryStream stream, ConsentData privacy, string route)
+    private async Task<Task?> UploadFileToS3(IFormFile file, string? contentType, Task? uploadTask, MemoryStream stream, ConsentData privacy, string route, bool? licenseImage)
     {
         logger.LogInformation($"Putting {route} to S3 bucket {bucketName}");
         if (privacy == null)
             throw new ApiException("privacy", "You need to have your privacy settings configured to upload images");
-        if (privacy.NewService ?? false)
+        if ((privacy.NewService ?? false) || (licenseImage ?? false))
         {
             await file.CopyToAsync(stream);
             uploadTask = s3Client.PutObjectAsync(new PutObjectRequest()
@@ -210,6 +211,10 @@ public class ImagesService
                 Key = route,
                 DisablePayloadSigning = true
             });
+        }
+        else
+        {
+            logger.LogInformation("Not uploading image to s3 because of privacy settings {settings}", JsonConvert.SerializeObject(privacy));
         }
 
         return uploadTask;
@@ -319,11 +324,13 @@ public class ImagesService
         {
             throw new ApiException("forbidden", "You are not allowed to access this image");
         }
+        AWSConfigsS3.UseSignatureVersion4 = true;
         var url = await s3Client.GetPreSignedURLAsync(new GetPreSignedUrlRequest()
         {
             BucketName = bucketName,
             Key = $"{stored.ObjectLabel.Replace(" ", "_")}/{id}",
-            Expires = DateTime.UtcNow.AddMinutes(5)
+            Expires = DateTime.UtcNow.AddMinutes(5),
+            Verb = HttpVerb.GET,
         });
         return AddDownloadUrl(stored, url);
     }
