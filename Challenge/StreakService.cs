@@ -89,8 +89,8 @@ public class StreakService
     private async Task ResetStreak(Guid userid)
     {
         var streakStat = await statsService.GetStat(userid, "collection_streak");
-        if (streakStat > 1)
-            await statsService.IncreaseStat(userid, "collection_streak", -(streakStat - 1)); // reset streak
+        if (streakStat > 0)
+            await statsService.IncreaseStat(userid, "collection_streak", -streakStat);
     }
 
     public async Task<bool> HasCollectedAnyToday(Guid userId)
