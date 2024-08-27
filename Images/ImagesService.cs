@@ -27,6 +27,7 @@ public class ImagesService
     private readonly StreakService streakService;
     private readonly PrivacyService privacyService;
     private readonly EventStorageService expService;
+    private readonly RewardsConfig rewardsConfig;
 
     public ImagesService(ILogger<ImagesService> logger,
                          IAmazonS3 s3Client,
@@ -41,7 +42,8 @@ public class ImagesService
                          WordService wordService,
                          StreakService streakService,
                          PrivacyService privacyService,
-                         EventStorageService expService)
+                         EventStorageService expService,
+                         RewardsConfig rewardsConfig)
     {
         this.logger = logger;
         this.s3Client = s3Client;
@@ -75,6 +77,7 @@ public class ImagesService
         this.streakService = streakService;
         this.privacyService = privacyService;
         this.expService = expService;
+        this.rewardsConfig = rewardsConfig;
     }
 
     public async Task<UploadImageResponse> UploadFile(string label, Guid userId, IFormFile file, bool? licenseImage)
@@ -114,7 +117,7 @@ public class ImagesService
         var collectedTimes = (await imageStatTask)?.CollectCount ?? 0;
         float value = 0;
         if (isCollectable)
-            value = Math.Max(Math.Max(500, obj?.Value ?? 500) - collectedTimes * 10, 10);
+            value = CalculateBaseReward(obj, collectedTimes);
         rewards.BaseReward = (long)value;
         if (await currentTask == label)
         {
@@ -193,6 +196,12 @@ public class ImagesService
         {
             return ((int)(value + 0.1)) / 5 * 5;
         }
+    }
+
+    private float CalculateBaseReward(CollectableObject? obj, long collectedTimes)
+    {
+        var defaultReward = rewardsConfig.CollectionRewards.Default;
+        return Math.Max(Math.Max(defaultReward, obj?.Value ?? defaultReward) - collectedTimes * rewardsConfig.CollectionRewards.ReducePerCollect, rewardsConfig.CollectionRewards.Minimum);
     }
 
     private async Task<Task?> UploadFileToS3(IFormFile file, string? contentType, Task? uploadTask, MemoryStream stream, ConsentData privacy, string route, bool? licenseImage)

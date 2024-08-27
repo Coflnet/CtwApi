@@ -12,6 +12,15 @@ public class RewardsConfig
     /// Multiplier Tiers
     /// </summary>
     public MultiplierRewards MultiplierRewards { get; set; } = new();
+
+    public CollectionRewards CollectionRewards { get; set; } = new();
+}
+
+public class CollectionRewards
+{
+    public int Default { get; set; }
+    public int ReducePerCollect { get; set; }
+    public int Minimum { get; set; }
 }
 
 public class MultiplierRewards
